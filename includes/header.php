@@ -1,9 +1,9 @@
 <?php
-require_once '../config.php';
+require_once dirname(__DIR__) . '/config.php';
 
 // Verificar sesión
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../index.php');
+    header('Location: ' . (dirname($_SERVER['SCRIPT_NAME']) === '/' ? '' : '..') . '/index.php');
     exit();
 }
 
