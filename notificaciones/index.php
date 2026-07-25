@@ -8,7 +8,7 @@ $user_id = $_SESSION['user_id'];
 
 // Marcar todas como leídas
 if (isset($_GET['marcar_todas'])) {
-    $stmt = $pdo->prepare("UPDATE notificaciones SET leida = 1 WHERE usuario_id = ?");
+    $stmt = $pdo->prepare("UPDATE notificaciones SET leida = TRUE WHERE usuario_id = ?");
     $stmt->execute([$user_id]);
     header('Location: index.php');
     exit();
@@ -17,7 +17,7 @@ if (isset($_GET['marcar_todas'])) {
 // Marcar una como leída
 if (isset($_GET['leer']) && isset($_GET['id'])) {
     $id = (int)$_GET['id'];
-    $stmt = $pdo->prepare("UPDATE notificaciones SET leida = 1 WHERE id = ? AND usuario_id = ?");
+    $stmt = $pdo->prepare("UPDATE notificaciones SET leida = TRUE WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$id, $user_id]);
     header('Location: index.php');
     exit();
@@ -30,7 +30,7 @@ $notificaciones = $stmt->fetchAll();
 
 $no_leidas = 0;
 foreach ($notificaciones as $n) {
-    if ($n['leida'] == 0) $no_leidas++;
+    if (!$n['leida'] || $n['leida'] === 'f' || $n['leida'] == 0) $no_leidas++;
 }
 ?>
 <style>
@@ -66,7 +66,7 @@ foreach ($notificaciones as $n) {
     <div class="empty-message">📭 No tienes notificaciones</div>
 <?php else: ?>
     <?php foreach($notificaciones as $notif): ?>
-        <div class="notificacion-item <?php echo $notif['leida'] == 0 ? 'no-leida' : ''; ?>">
+        <div class="notificacion-item <?php if (!$notif['leida'] || $notif['leida'] === 'f' || $notif['leida'] == 0) echo 'no-leida'; ?>">
             <div>
                 <div class="titulo">
                     <?php echo htmlspecialchars($notif['titulo']); ?>
@@ -76,7 +76,7 @@ foreach ($notificaciones as $n) {
                 <div class="fecha">📅 <?php echo $notif['fecha_creacion']; ?></div>
             </div>
             <div>
-                <?php if ($notif['leida'] == 0): ?>
+                <?php if (!$notif['leida'] || $notif['leida'] === 'f' || $notif['leida'] == 0): ?>
                     <a href="index.php?leer=1&id=<?php echo $notif['id']; ?>" class="btn-notificacion">Marcar leída</a>
                 <?php else: ?>
                     <span style="color:#999; font-size:12px;">✅ Leída</span>

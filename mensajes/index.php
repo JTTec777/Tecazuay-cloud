@@ -10,7 +10,7 @@ $rol = $_SESSION['user_rol'];
 // Marcar mensaje como leído
 if (isset($_GET['leer']) && isset($_GET['id'])) {
     $id = (int)$_GET['id'];
-    $stmt = $pdo->prepare("UPDATE mensajes SET leido = 1 WHERE id = ? AND destinatario_id = ?");
+    $stmt = $pdo->prepare("UPDATE mensajes SET leido = TRUE WHERE id = ? AND destinatario_id = ?");
     $stmt->execute([$id, $user_id]);
 }
 
@@ -80,7 +80,7 @@ $enviados = $stmt->fetchAll();
                     <div class="fecha">📅 <?php echo $msg['fecha_envio']; ?></div>
                 </div>
                 <div>
-                    <?php if ($msg['leido'] == 0): ?>
+                    <?php if (!$msg['leido'] || $msg['leido'] === 'f' || $msg['leido'] == 0): ?>
                         <span class="no-leido">🔵 Nuevo</span>
                     <?php endif; ?>
                     <a href="leer.php?id=<?php echo $msg['id']; ?>" class="btn-mensaje">Ver</a>
@@ -112,14 +112,11 @@ $enviados = $stmt->fetchAll();
 
 <script>
 function mostrarTab(tab) {
-    // Ocultar todos los tabs
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.add('inactive'));
     
-    // Mostrar el tab seleccionado
     document.getElementById('tab-' + tab).classList.add('active');
-    // Marcar botón como activo
     const btns = document.querySelectorAll('.tab-btn');
     if (tab === 'recibidos') {
         btns[0].classList.remove('inactive');

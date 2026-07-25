@@ -24,8 +24,8 @@ if (!$mensaje) {
 }
 
 // Marcar como leído si el usuario es destinatario
-if ($mensaje['destinatario_id'] == $user_id && $mensaje['leido'] == 0) {
-    $stmt = $pdo->prepare("UPDATE mensajes SET leido = 1 WHERE id = ?");
+if ($mensaje['destinatario_id'] == $user_id && (!$mensaje['leido'] || $mensaje['leido'] === 'f' || $mensaje['leido'] == 0)) {
+    $stmt = $pdo->prepare("UPDATE mensajes SET leido = TRUE WHERE id = ?");
     $stmt->execute([$id]);
 }
 ?>

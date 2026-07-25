@@ -1,4 +1,4 @@
-<?php
+k<?php
 require_once '../config.php';
 
 // Verificar sesión
@@ -17,12 +17,12 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
 $user_id = $_SESSION['user_id'];
 
 // Contar notificaciones no leídas
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM notificaciones WHERE usuario_id = ? AND leida = 0");
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM notificaciones WHERE usuario_id = ? AND leida = FALSE");
 $stmt->execute([$user_id]);
 $notificaciones_no_leidas = $stmt->fetchColumn();
 
 // Contar mensajes no leídos
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM mensajes WHERE destinatario_id = ? AND leido = 0");
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM mensajes WHERE destinatario_id = ? AND leido = FALSE");
 $stmt->execute([$user_id]);
 $mensajes_no_leidos = $stmt->fetchColumn();
 
@@ -128,3 +128,6 @@ elseif (strpos($_SERVER['SCRIPT_NAME'], '/includes/') !== false) $base_path = '.
                 <a href="<?php echo $base_path; ?>/logout.php" class="btn-logout">Cerrar Sesión</a>
             </div>
         </header>
+    </div>
+</body>
+</html>
