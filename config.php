@@ -38,8 +38,8 @@ try {
 function supabaseUpload($filePath, $fileName, $mimeType = 'application/octet-stream') {
     global $supabaseUrl, $supabaseKey;
     if (empty($supabaseUrl) || empty($supabaseKey)) return false;
-    $bucket = 'entregas';
-    $url = rtrim($supabaseUrl, '/') . "/storage/v1/object/$bucket/$fileName";
+    $bucket = 'Entregas';
+    $url = rtrm($supabaseUrl, '/') . "/storage/v1/object/$bucket/$fileName";
     $data = file_get_contents($filePath);
     if ($data === false) return false;
     $ch = curl_init($url);
