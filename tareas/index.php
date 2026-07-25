@@ -61,16 +61,11 @@ $hoy = date('Y-m-d H:i:s');
     .badge-entregada { background: #e8f5e9; color: #2e7d32; }
     .badge-vencida { background: #ffebee; color: #c62828; }
     .badge-calificada { background: #e3f2fd; color: #0d47a1; }
-    .btn-entregar { background: #1a237e; color: white; padding: 6px 18px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block; transition: 0.3s; }
-    .btn-entregar:hover { background: #0d1457; transform: translateY(-2px); }
+    .btn-gestionar { background: #1a237e; color: white; padding: 6px 18px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block; transition: 0.3s; margin-right: 8px; }
+    .btn-gestionar:hover { background: #0d1457; transform: translateY(-2px); }
     .nota-tag { background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; }
     .empty-state { text-align: center; padding: 60px 20px; color: #999; }
     .empty-state h3 { color: #1a237e; margin-bottom: 8px; }
-    .filtros { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-    .filtro-btn { padding: 8px 18px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.3s; }
-    .filtro-btn.activo { background: #1a237e; color: white; }
-    .filtro-btn.inactivo { background: #e8eaf6; color: #1a237e; }
-    .filtro-btn.inactivo:hover { background: #d5d9e8; }
 </style>
 
 <h2 style="color:#1a237e; margin-bottom:20px;">📋 Mis Tareas y Actividades</h2>
@@ -132,11 +127,14 @@ $hoy = date('Y-m-d H:i:s');
                     <span style="color:#888; font-size:13px;">Esperando calificación...</span>
                 <?php elseif ($vencida): ?>
                     <span class="badge-estado badge-vencida">❌ Vencida</span>
-                    <a href="../actividad.php?id=<?php echo $act['id']; ?>" class="btn-entregar">Entregar ahora</a>
                 <?php else: ?>
                     <span class="badge-estado badge-pendiente">⏳ Pendiente</span>
-                    <a href="../actividad.php?id=<?php echo $act['id']; ?>" class="btn-entregar">📤 Entregar</a>
                 <?php endif; ?>
+                
+                <!-- SIEMPRE hay botón para entrar a gestionar -->
+                <a href="../actividad.php?id=<?php echo $act['id']; ?>" class="btn-gestionar">
+                    <?php echo $entregada ? '🔧 Gestionar entrega' : '📤 Entregar ahora'; ?>
+                </a>
             </div>
         </div>
     <?php endforeach; ?>
