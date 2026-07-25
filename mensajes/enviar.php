@@ -1,11 +1,16 @@
-k<?php
+<?php
 require_once '../config.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../index.php');
+    exit();
+}
 
 $user_id = $_SESSION['user_id'];
 $mensaje = '';
 $error = '';
 
-// OBTENER DESTINATARIO POR DEFECTO (si viene por GET)
+// Obtener destinatario por defecto
 $destinatario_id = isset($_GET['para']) ? (int)$_GET['para'] : 0;
 $destinatario_nombre = '';
 if ($destinatario_id > 0) {
@@ -17,13 +22,12 @@ if ($destinatario_id > 0) {
     }
 }
 
-// OBTENER LISTA DE USUARIOS
-$stmt = $pdo->query("SELECT id, nombre, rol_id FROM usuarios WHERE id != $user_id ORDER BY nombre");
+// Obtener lista de usuarios
+$stmt = $pdo->prepare("SELECT id, nombre, rol_id FROM usuarios WHERE id != ? ORDER BY nombre");
+$stmt->execute([$user_id]);
 $usuarios = $stmt->fetchAll();
 
-// ============================================
-// PROCESAR ENVÍO PRIMERO (antes de cualquier output HTML)
-// ============================================
+// Procesar envío
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $destinatario = (int)$_POST['destinatario'];
     $asunto = trim($_POST['asunto']);
@@ -32,7 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($destinatario > 0 && !empty($asunto) && !empty($contenido)) {
         $stmt = $pdo->prepare("INSERT INTO mensajes (remitente_id, destinatario_id, asunto, mensaje) VALUES (?, ?, ?, ?)");
         if ($stmt->execute([$user_id, $destinatario, $asunto, $contenido])) {
-            // Notificar al destinatario
             $stmt = $pdo->prepare("INSERT INTO notificaciones (usuario_id, titulo, mensaje, tipo) VALUES (?, ?, ?, ?)");
             $stmt->execute([
                 $destinatario,
@@ -50,9 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// ============================================
-// AHORA SÍ SE INCLUYE EL HEADER (después de toda la lógica PHP)
-// ============================================
 $titulo = 'Enviar Mensaje - TEC AZUAY';
 $base_path = '..';
 include '../includes/header.php';
