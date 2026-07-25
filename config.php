@@ -3,10 +3,15 @@
 // CONFIGURACIÓN PARA RENDER / SUPABASE / POSTGRESQL
 // ============================================
 
-$dbUrl = getenv('DATABASE_URL') ?: 'postgresql://postgres:localhost@localhost:5432/postgres';
-$jwtSecret = getenv('JWT_SECRET') ?: 'default_secret_change_me';
+$host = getenv('DB_HOST') ?: 'localhost';
+$port = getenv('DB_PORT') ?: '5432';
+$dbname = getenv('DB_NAME') ?: 'postgres';
+$user = getenv('DB_USER') ?: 'postgres';
+$pass = getenv('DB_PASS') ?: '';
+
 $supabaseUrl = getenv('SUPABASE_URL') ?: '';
 $supabaseKey = getenv('SUPABASE_KEY') ?: '';
+$jwtSecret = getenv('JWT_SECRET') ?: 'default_secret_change_me';
 
 // ============================================
 // SESIONES (PostgreSQL compatible con PaaS)
@@ -32,17 +37,11 @@ if (isset($_SESSION['ultima_actividad']) && (time() - $_SESSION['ultima_activida
 $_SESSION['ultima_actividad'] = time();
 
 // ============================================
-// CONEXIÓN POSTGRESQL (Supabase)
+// CONEXIÓN POSTGRESQL (Supabase) - SIN PARSEAR URL
 // ============================================
-$parsedDb = parse_url($dbUrl);
-$host = $parsedDb['host'] ?? 'localhost';
-$port = $parsedDb['port'] ?? '5432';
-$user = $parsedDb['user'] ?? 'postgres';
-$pass = $parsedDb['pass'] ?? '';
-$dbname = ltrim($parsedDb['path'] ?? '/postgres', '/');
-
 try {
-    $pdo = new PDO("pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require", $user, $pass);
+    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require";
+    $pdo = new PDO($dsn, $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
