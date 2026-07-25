@@ -1,4 +1,4 @@
-k<?php
+<?php
 require_once '../config.php';
 
 // Verificar sesión
