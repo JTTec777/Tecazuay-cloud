@@ -20,21 +20,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['archivo'])) {
         exit();
     }
     
-    // Validar tamaño (512 MB)
     if ($archivo['size'] > 512 * 1024 * 1024) {
         header('Location: actividad.php?id=' . $actividad_id . '&error=El archivo excede el tamaño máximo');
         exit();
     }
     
-    // Generar nombre único y limpio
     $nombre_original = basename($archivo['name']);
     $nombre_unico = time() . '_' . $estudiante_id . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $nombre_original);
     
-    // Subir a Supabase Storage
+    // DEBUG: Intentar subir a Supabase
     $ruta_publica = supabaseUpload($archivo['tmp_name'], $nombre_unico, $archivo['type']);
     
     if (!$ruta_publica) {
-        header('Location: actividad.php?id=' . $actividad_id . '&error=Error al subir archivo a la nube');
+        $error_msg = 'Error al subir archivo a la nube';
+        if (isset($_SESSION['upload_error'])) {
+            $error_msg .= ' | DEBUG: ' . $_SESSION['upload_error'];
+            unset($_SESSION['upload_error']);
+        }
+        header('Location: actividad.php?id=' . $actividad_id . '&error=' . urlencode($error_msg));
         exit();
     }
     
@@ -44,10 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['archivo'])) {
     $existente = $stmt->fetch();
     
     if ($existente) {
-        // Borrar archivo anterior de Supabase
         $nombre_anterior = basename($existente['ruta_archivo']);
         supabaseDelete($nombre_anterior);
-        
         $stmt3 = $pdo->prepare("UPDATE entregas SET nombre_archivo = ?, ruta_archivo = ?, fecha_entrega = NOW() WHERE id = ?");
         $stmt3->execute([$nombre_original, $ruta_publica, $existente['id']]);
     } else {
