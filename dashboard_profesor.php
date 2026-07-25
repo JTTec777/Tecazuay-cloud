@@ -7,6 +7,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] != 'profesor') {
     exit();
 }
 
+// Obtener todos los cursos (ambos profesores ven todos)
+$stmt_cursos = $pdo->query("SELECT id, nombre, descripcion, activo FROM cursos ORDER BY id");
+$cursos = $stmt_cursos->fetchAll();
+
 // Obtener todos los estudiantes con contraseñas
 $stmt = $pdo->query("SELECT id, nombre, usuario, contrasena FROM usuarios WHERE rol_id = 1 ORDER BY nombre");
 $estudiantes = $stmt->fetchAll();
@@ -15,6 +19,14 @@ $estudiantes = $stmt->fetchAll();
 $stmt2 = $pdo->query("SELECT nombre, usuario FROM usuarios WHERE rol_id = 2 ORDER BY nombre");
 $profesores = $stmt2->fetchAll();
 
+// Contar entregas pendientes de calificación
+$stmt_pendientes = $pdo->query("
+    SELECT COUNT(*) FROM entregas e
+    LEFT JOIN calificaciones c ON c.entrega_id = e.id
+    WHERE c.id IS NULL
+");
+$pendientes = $stmt_pendientes->fetchColumn();
+
 // Procesar cambio de contraseña
 $mensaje = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cambiar_pass'])) {
@@ -22,8 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cambiar_pass'])) {
     $nueva_pass = $_POST['nueva_contrasena'];
     
     if (!empty($nueva_pass)) {
+        $hash = password_hash($nueva_pass, PASSWORD_DEFAULT, ['cost' => 12]);
         $stmt3 = $pdo->prepare("UPDATE usuarios SET contrasena = ? WHERE id = ? AND rol_id = 1");
-        if ($stmt3->execute([$nueva_pass, $user_id])) {
+        if ($stmt3->execute([$hash, $user_id])) {
             $mensaje = t('password_updated');
             $stmt = $pdo->query("SELECT id, nombre, usuario, contrasena FROM usuarios WHERE rol_id = 1 ORDER BY nombre");
             $estudiantes = $stmt->fetchAll();
@@ -183,6 +196,68 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             gap: 10px;
             margin-bottom: 10px;
         }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(26,35,126,0.06);
+            text-align: center;
+            border-left: 4px solid #dcc97a;
+        }
+        .stat-card h3 {
+            color: #1a237e;
+            font-size: 28px;
+            margin-bottom: 4px;
+        }
+        .stat-card p {
+            color: #888;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .cursos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .curso-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(26,35,126,0.06);
+            border-left: 4px solid #1a237e;
+        }
+        .curso-card h3 {
+            color: #1a237e;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .curso-card p {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .curso-card .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-activo {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .badge-inactivo {
+            background: #ffebee;
+            color: #c62828;
+        }
     </style>
 </head>
 <body>
@@ -194,7 +269,7 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
                 <span class="subtitle"><?php echo t('institute'); ?></span>
             </div>
             <div class="header-right">
-                <span class="user-name">👨‍🏫 <?php echo $nombre_usuario; ?></span>
+                <span class="user-name">👨🏫 <?php echo $nombre_usuario; ?></span>
                 <a href="logout.php?csrf_token=<?php echo generarTokenCSRF(); ?>" class="btn-logout"><?php echo t('logout'); ?></a>
             </div>
         </header>
@@ -204,7 +279,7 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             <a href="calendar.php" class="btn-calendar">📅 Calendario</a>
             <a href="panel_profesor_tareas.php" class="btn-entregas">📋 Entregas</a>
             <a href="cursos/" class="btn-cursos">📚 Cursos</a>
-            <a href="calificaciones/calificar.php" class="btn-calificar">📊 Calificar</a>
+            <a href="panel_profesor_tareas.php" class="btn-calificar">📊 Calificar</a>
             <a href="mensajes/" class="btn-mensajes">💬 Mensajes</a>
             <a href="notificaciones/" class="btn-notificaciones">🔔 Notificaciones</a>
             <a href="anuncios/" class="btn-anuncios">📢 Anuncios</a>
@@ -220,11 +295,41 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             <div class="mensaje-flotante"><?php echo $mensaje; ?></div>
         <?php endif; ?>
 
+        <!-- Estadísticas -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3><?php echo count($cursos); ?></h3>
+                <p>CURSOS TOTALES</p>
+            </div>
+            <div class="stat-card">
+                <h3><?php echo count($estudiantes); ?></h3>
+                <p>ESTUDIANTES</p>
+            </div>
+            <div class="stat-card">
+                <h3><?php echo $pendientes; ?></h3>
+                <p>ENTREGAS PENDIENTES</p>
+            </div>
+        </div>
+
+        <!-- Cursos -->
+        <h2 style="color:#1a237e; margin-bottom:15px;">📚 Cursos Disponibles</h2>
+        <div class="cursos-grid">
+            <?php foreach($cursos as $curso): ?>
+                <div class="curso-card">
+                    <h3><?php echo htmlspecialchars($curso['nombre']); ?></h3>
+                    <p><?php echo htmlspecialchars($curso['descripcion']); ?></p>
+                    <span class="badge <?php echo $curso['activo'] ? 'badge-activo' : 'badge-inactivo'; ?>">
+                        <?php echo $curso['activo'] ? '✅ Activo' : '❌ Inactivo'; ?>
+                    </span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
         <!-- Main Content -->
         <div class="main-content">
             <!-- Tabla de Profesores -->
             <div class="card">
-                <h2>👨‍🏫 <?php echo t('professors_list'); ?></h2>
+                <h2>👨🏫 <?php echo t('professors_list'); ?></h2>
                 <table>
                     <thead>
                         <tr>

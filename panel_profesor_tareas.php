@@ -8,57 +8,25 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] != 'profesor') {
     exit();
 }
 
-$profesor_id = $_SESSION['user_id'];
+// Ahora los profesores ven TODAS las entregas de TODOS los cursos
+$stmt = $pdo->query("
+    SELECT e.id, e.nombre_archivo, e.ruta_archivo, e.fecha_entrega,
+           a.titulo as actividad_titulo, a.id as actividad_id,
+           u.nombre as estudiante_nombre, u.id as estudiante_id,
+           c.nombre as curso_nombre,
+           cal.calificacion, cal.comentario
+    FROM entregas e
+    JOIN actividades a ON e.actividad_id = a.id
+    JOIN cursos c ON a.curso_id = c.id
+    JOIN usuarios u ON e.estudiante_id = u.id
+    LEFT JOIN calificaciones cal ON cal.entrega_id = e.id
+    ORDER BY e.fecha_entrega DESC
+");
+$entregas = $stmt->fetchAll();
 
-// Obtener cursos del profesor
-$stmt = $pdo->prepare("SELECT id, nombre FROM cursos WHERE profesor_id = ? AND activo = TRUE");
-$stmt->execute([$profesor_id]);
-$cursos = $stmt->fetchAll();
-
-// DEBUG: Si no tiene cursos, mostrar todas las entregas igual (para diagnosticar)
-$mostrar_todas = false;
-if (count($cursos) == 0) {
-    $mostrar_todas = true;
-}
-
-// Obtener entregas
-if (!$mostrar_todas) {
-    $curso_ids = array_column($cursos, 'id');
-    $placeholders = implode(',', array_fill(0, count($curso_ids), '?'));
-    
-    $stmt = $pdo->prepare("
-        SELECT e.id, e.nombre_archivo, e.ruta_archivo, e.fecha_entrega,
-               a.titulo as actividad_titulo, a.id as actividad_id,
-               u.nombre as estudiante_nombre, u.id as estudiante_id,
-               c.nombre as curso_nombre,
-               cal.calificacion, cal.comentario
-        FROM entregas e
-        JOIN actividades a ON e.actividad_id = a.id
-        JOIN cursos c ON a.curso_id = c.id
-        JOIN usuarios u ON e.estudiante_id = u.id
-        LEFT JOIN calificaciones cal ON cal.entrega_id = e.id
-        WHERE c.id IN ($placeholders)
-        ORDER BY e.fecha_entrega DESC
-    ");
-    $stmt->execute($curso_ids);
-    $entregas = $stmt->fetchAll();
-} else {
-    // Fallback: mostrar TODAS las entregas para debug
-    $stmt = $pdo->query("
-        SELECT e.id, e.nombre_archivo, e.ruta_archivo, e.fecha_entrega,
-               a.titulo as actividad_titulo, a.id as actividad_id,
-               u.nombre as estudiante_nombre, u.id as estudiante_id,
-               c.nombre as curso_nombre, c.profesor_id,
-               cal.calificacion, cal.comentario
-        FROM entregas e
-        JOIN actividades a ON e.actividad_id = a.id
-        JOIN cursos c ON a.curso_id = c.id
-        JOIN usuarios u ON e.estudiante_id = u.id
-        LEFT JOIN calificaciones cal ON cal.entrega_id = e.id
-        ORDER BY e.fecha_entrega DESC
-    ");
-    $entregas = $stmt->fetchAll();
-}
+// Contar cursos totales (para estadísticas)
+$stmt = $pdo->query("SELECT COUNT(*) FROM cursos WHERE activo = TRUE");
+$total_cursos = $stmt->fetchColumn();
 ?>
 <style>
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
@@ -78,14 +46,12 @@ if (!$mostrar_todas) {
     .btn-doc:hover { background: #c4b15a; transform: translateY(-2px); }
     .empty-state { text-align: center; padding: 60px 20px; color: #999; }
     .empty-state h3 { color: #1a237e; margin-bottom: 8px; }
-    .debug-box { background: #fff3e0; border-left: 4px solid #e65100; padding: 15px 20px; margin-bottom: 20px; border-radius: 8px; font-size: 13px; color: #333; }
-    .debug-box strong { color: #e65100; }
 </style>
 
 <div class="stats-grid">
     <div class="stat-card">
-        <h3><?php echo count($cursos); ?></h3>
-        <p>MIS CURSOS</p>
+        <h3><?php echo $total_cursos; ?></h3>
+        <p>CURSOS TOTALES</p>
     </div>
     <div class="stat-card">
         <h3><?php echo count($entregas); ?></h3>
@@ -101,23 +67,12 @@ if (!$mostrar_todas) {
     </div>
 </div>
 
-<?php if ($mostrar_todas): ?>
-<div class="debug-box">
-    <strong>⚠️ Modo diagnóstico activado:</strong> No tienes cursos asignados con tu usuario (ID: <?php echo $profesor_id; ?>). 
-    Mostrando <strong>todas las entregas del sistema</strong> para que puedas verificar.<br><br>
-    <strong>Para arreglar esto permanentemente,</strong> ejecuta este SQL en Supabase (reemplaza el ID si es necesario):
-    <code style="display:block; background:#f5f5f5; padding:10px; margin-top:8px; border-radius:6px;">
-        UPDATE cursos SET profesor_id = <?php echo $profesor_id; ?> WHERE id IN (1,2);
-    </code>
-</div>
-<?php endif; ?>
-
 <h2 style="color:#1a237e; margin-bottom:20px;">📋 Entregas de Estudiantes</h2>
 
 <?php if (count($entregas) == 0): ?>
     <div class="empty-state">
         <h3>📭 No hay entregas aún</h3>
-        <p>No se encontraron archivos subidos por estudiantes.</p>
+        <p>Los estudiantes aún no han subido archivos.</p>
     </div>
 <?php else: ?>
     <table class="entregas-table">
