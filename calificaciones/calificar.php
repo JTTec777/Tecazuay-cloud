@@ -1,149 +1,171 @@
 <?php
 require_once '../config.php';
-$titulo = 'Calificar Entregas - TEC AZUAY';
-$base_path = '..';
-include '../includes/header.php';
 
-if ($_SESSION['user_rol'] != 'profesor') {
+if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] != 'profesor') {
     header('Location: ../index.php');
     exit();
 }
 
-$exito = isset($_GET['exito']) ? $_GET['exito'] : '';
+$profesor_id = $_SESSION['user_id'];
 $error = '';
+$exito = '';
+
+// Obtener entrega
+$entrega_id = isset($_GET['entrega_id']) ? (int)$_GET['entrega_id'] : 0;
+
+$stmt = $pdo->prepare("
+    SELECT e.id, e.nombre_archivo, e.ruta_archivo, e.fecha_entrega,
+           a.titulo as actividad_titulo, a.descripcion as actividad_desc,
+           u.nombre as estudiante_nombre,
+           c.nombre as curso_nombre,
+           cal.calificacion, cal.comentario, cal.fecha_calificacion
+    FROM entregas e
+    JOIN actividades a ON e.actividad_id = a.id
+    JOIN cursos c ON a.curso_id = c.id
+    JOIN usuarios u ON e.estudiante_id = u.id
+    LEFT JOIN calificaciones cal ON cal.entrega_id = e.id
+    WHERE e.id = ? AND c.profesor_id = ?
+");
+$stmt->execute([$entrega_id, $profesor_id]);
+$entrega = $stmt->fetch();
+
+if (!$entrega) {
+    header('Location: ../panel_profesor_tareas.php');
+    exit();
+}
 
 // Procesar calificación
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['calificar'])) {
-    $entrega_id = (int)$_POST['entrega_id'];
-    $calificacion = (float)$_POST['calificacion'];
-    $comentario = $_POST['comentario'];
-    $profesor_id = $_SESSION['user_id'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $nota = (float)str_replace(',', '.', $_POST['calificacion']);
+    $comentario = trim($_POST['comentario'] ?? '');
     
-    if ($calificacion >= 0 && $calificacion <= 20) {
-        $stmt = $pdo->prepare("INSERT INTO calificaciones (entrega_id, calificacion, comentario, calificado_por) VALUES (?, ?, ?, ?)");
-        if ($stmt->execute([$entrega_id, $calificacion, $comentario, $profesor_id])) {
+    if ($nota >= 0 && $nota <= 20) {
+        // Verificar si ya existe calificación
+        $stmt = $pdo->prepare("SELECT id FROM calificaciones WHERE entrega_id = ?");
+        $stmt->execute([$entrega_id]);
+        $existente = $stmt->fetch();
+        
+        if ($existente) {
+            $stmt = $pdo->prepare("UPDATE calificaciones SET calificacion = ?, comentario = ?, calificado_por = ?, fecha_calificacion = NOW() WHERE entrega_id = ?");
+            $stmt->execute([$nota, $comentario, $profesor_id, $entrega_id]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO calificaciones (entrega_id, calificacion, comentario, calificado_por, fecha_calificacion) VALUES (?, ?, ?, ?, NOW())");
+            $stmt->execute([$entrega_id, $nota, $comentario, $profesor_id]);
+            
             // Notificar al estudiante
             $stmt = $pdo->prepare("SELECT estudiante_id FROM entregas WHERE id = ?");
             $stmt->execute([$entrega_id]);
-            $estudiante_id = $stmt->fetchColumn();
-            
-            $stmt = $pdo->prepare("INSERT INTO notificaciones (usuario_id, titulo, mensaje, tipo) VALUES (?, ?, ?, ?)");
-            $stmt->execute([
-                $estudiante_id,
-                '📊 Nueva calificación',
-                'Tu entrega ha sido calificada con ' . $calificacion . '/20',
-                'calificacion'
-            ]);
-            
-            header('Location: calificar.php?exito=Calificación guardada correctamente');
-            exit();
-        } else {
-            $error = '❌ Error al guardar la calificación';
+            $est = $stmt->fetch();
+            if ($est) {
+                $stmt = $pdo->prepare("INSERT INTO notificaciones (usuario_id, titulo, mensaje, tipo) VALUES (?, ?, ?, ?)");
+                $stmt->execute([
+                    $est['estudiante_id'],
+                    '📊 Nueva calificación',
+                    'Tu entrega de "' . $entrega['actividad_titulo'] . '" ha sido calificada con ' . number_format($nota, 2) . '/20',
+                    'calificacion'
+                ]);
+            }
         }
+        
+        header('Location: ../panel_profesor_tareas.php?exito=1');
+        exit();
     } else {
         $error = '❌ La calificación debe estar entre 0 y 20';
     }
 }
 
-// Obtener entregas sin calificar
-$stmt = $pdo->prepare("
-    SELECT e.*, u.nombre as estudiante_nombre, u.usuario
-    FROM entregas e
-    JOIN usuarios u ON e.estudiante_id = u.id
-    WHERE e.id NOT IN (SELECT entrega_id FROM calificaciones)
-    ORDER BY e.fecha_entrega DESC
-");
-$stmt->execute();
-$entregas_sin_calificar = $stmt->fetchAll();
-
-// Obtener entregas ya calificadas
-$stmt = $pdo->prepare("
-    SELECT e.*, u.nombre as estudiante_nombre, u.usuario,
-           c.calificacion, c.comentario, c.fecha_calificacion
-    FROM entregas e
-    JOIN usuarios u ON e.estudiante_id = u.id
-    JOIN calificaciones c ON e.id = c.entrega_id
-    ORDER BY c.fecha_calificacion DESC
-    LIMIT 20
-");
-$stmt->execute();
-$entregas_calificadas = $stmt->fetchAll();
+$titulo = 'Calificar Entrega - TEC AZUAY';
+$base_path = '..';
+include '../includes/header.php';
 ?>
 <style>
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(26,35,126,0.06); border: 1px solid rgba(26,35,126,0.04); }
-    .card h3 { color: #1a237e; font-size: 16px; border-bottom: 2px solid #e8eaf6; padding-bottom: 10px; margin-bottom: 15px; }
-    .entrega-item { padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
-    .entrega-item:last-child { border-bottom: none; }
-    .entrega-item .nombre { font-weight: 600; color: #1a237e; font-size: 14px; }
-    .entrega-item .archivo { font-size: 13px; color: #666; }
-    .entrega-item .fecha { font-size: 12px; color: #999; }
-    .form-calificar { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .form-calificar input[type="number"] { width: 70px; padding: 5px 8px; border: 2px solid #e8ecf5; border-radius: 8px; font-size: 13px; }
-    .form-calificar input[type="text"] { flex: 1; min-width: 120px; padding: 5px 10px; border: 2px solid #e8ecf5; border-radius: 8px; font-size: 13px; }
-    .form-calificar button { background: #1a237e; color: white; padding: 5px 16px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.3s; }
-    .form-calificar button:hover { background: #0d1457; }
-    .badge-calificada { background: #e8f5e9; color: #2e7d32; padding: 2px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-    .calificacion { font-weight: 700; color: #1a237e; font-size: 18px; }
-    .comentario { color: #666; font-size: 13px; font-style: italic; }
-    .empty-message { color: #999; text-align: center; padding: 20px; font-size: 14px; }
-    .mensaje-flotante { padding: 10px 16px; border-radius: 10px; margin-bottom: 15px; font-weight: 600; }
-    .mensaje-exito { background: #e8f5e9; color: #2e7d32; border-left: 4px solid #2e7d32; }
-    .mensaje-error { background: #ffebee; color: #c62828; border-left: 4px solid #c62828; }
-    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    .calificar-container { max-width: 900px; margin: 0 auto; }
+    .info-card { background: white; border-radius: 16px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(26,35,126,0.06); }
+    .info-card h3 { color: #1a237e; margin-bottom: 12px; font-size: 18px; }
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 14px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-row strong { color: #1a237e; }
+    .doc-preview { background: #f8f9ff; border: 2px dashed #1a237e; border-radius: 12px; padding: 30px; text-align: center; margin: 15px 0; }
+    .doc-preview a { display: inline-block; background: #1a237e; color: white; padding: 12px 30px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px; transition: 0.3s; }
+    .doc-preview a:hover { background: #0d1457; transform: translateY(-2px); }
+    .form-calificar { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 20px rgba(26,35,126,0.06); }
+    .form-calificar label { display: block; color: #1a237e; font-weight: 600; margin-bottom: 6px; font-size: 13px; }
+    .form-calificar input, .form-calificar textarea { width: 100%; padding: 12px 14px; border: 2px solid #e8ecf5; border-radius: 10px; font-size: 14px; margin-bottom: 16px; transition: 0.3s; font-family: 'Inter', sans-serif; }
+    .form-calificar input:focus, .form-calificar textarea:focus { border-color: #1a237e; outline: none; box-shadow: 0 0 0 4px rgba(26,35,126,0.08); }
+    .form-calificar input { max-width: 120px; text-align: center; font-size: 24px; font-weight: 700; color: #1a237e; }
+    .nota-escala { color: #888; font-size: 12px; margin-top: -12px; margin-bottom: 16px; }
+    .mensaje-error { background: #ffebee; color: #c62828; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-weight: 600; border-left: 4px solid #c62828; }
+    .btn-guardar { background: #4caf50; color: white; padding: 12px 30px; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.3s; }
+    .btn-guardar:hover { background: #388e3c; transform: translateY(-2px); }
+    .btn-volver { background: #e8eaf6; color: #1a237e; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block; margin-left: 10px; transition: 0.3s; }
+    .btn-volver:hover { background: #d5d9e8; }
+    .nota-actual { background: #e8f5e9; color: #2e7d32; padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; font-size: 14px; }
+    .nota-actual strong { font-size: 24px; }
 </style>
 
-<?php if ($exito): ?>
-    <div class="mensaje-flotante mensaje-exito">✅ <?php echo $exito; ?></div>
-<?php endif; ?>
-<?php if ($error): ?>
-    <div class="mensaje-flotante mensaje-error"><?php echo $error; ?></div>
-<?php endif; ?>
+<div class="calificar-container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+        <h2 style="color:#1a237e;">📝 Calificar Entrega</h2>
+        <a href="../panel_profesor_tareas.php" class="btn-volver">← Volver a tareas</a>
+    </div>
 
-<div class="grid-2">
-    <!-- Entregas sin calificar -->
-    <div class="card">
-        <h3>📤 Pendientes de calificar</h3>
-        <?php if (count($entregas_sin_calificar) == 0): ?>
-            <div class="empty-message">✅ No hay entregas pendientes</div>
+    <?php if ($error): ?>
+        <div class="mensaje-error"><?php echo $error; ?></div>
+    <?php endif; ?>
+
+    <!-- Información de la entrega -->
+    <div class="info-card">
+        <h3>📋 Información de la Entrega</h3>
+        <div class="info-row">
+            <span><strong>👤 Estudiante:</strong> <?php echo htmlspecialchars($entrega['estudiante_nombre']); ?></span>
+            <span><strong>📚 Curso:</strong> <?php echo htmlspecialchars($entrega['curso_nombre']); ?></span>
+        </div>
+        <div class="info-row">
+            <span><strong>📝 Actividad:</strong> <?php echo htmlspecialchars($entrega['actividad_titulo']); ?></span>
+            <span><strong>📅 Fecha:</strong> <?php echo date('d/m/Y H:i', strtotime($entrega['fecha_entrega'])); ?></span>
+        </div>
+    </div>
+
+    <!-- Documento del estudiante -->
+    <div class="info-card">
+        <h3>📄 Documento Entregado</h3>
+        <?php if (!empty($entrega['ruta_archivo'])): ?>
+            <div class="doc-preview">
+                <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+                <div style="color: #1a237e; font-weight: 600; margin-bottom: 15px;"><?php echo htmlspecialchars($entrega['nombre_archivo']); ?></div>
+                <a href="<?php echo htmlspecialchars($entrega['ruta_archivo']); ?>" target="_blank">👁️ Ver / Descargar Documento</a>
+            </div>
         <?php else: ?>
-            <?php foreach($entregas_sin_calificar as $entrega): ?>
-                <div class="entrega-item">
-                    <div class="nombre">👤 <?php echo htmlspecialchars($entrega['estudiante_nombre']); ?></div>
-                    <div class="archivo">📄 <?php echo htmlspecialchars($entrega['nombre_archivo']); ?></div>
-                    <div class="fecha">📅 <?php echo $entrega['fecha_entrega']; ?></div>
-                    <form method="POST" class="form-calificar">
-                        <input type="hidden" name="entrega_id" value="<?php echo $entrega['id']; ?>">
-                        <input type="number" name="calificacion" min="0" max="20" step="0.5" placeholder="Nota" required>
-                        <input type="text" name="comentario" placeholder="Comentario">
-                        <button type="submit" name="calificar">Calificar</button>
-                    </form>
-                </div>
-            <?php endforeach; ?>
+            <p style="color:#999; text-align:center; padding:20px;">No hay archivo adjunto.</p>
         <?php endif; ?>
     </div>
 
-    <!-- Entregas ya calificadas -->
-    <div class="card">
-        <h3>✅ Ya calificadas</h3>
-        <?php if (count($entregas_calificadas) == 0): ?>
-            <div class="empty-message">📭 No hay entregas calificadas aún</div>
-        <?php else: ?>
-            <?php foreach($entregas_calificadas as $entrega): ?>
-                <div class="entrega-item">
-                    <div class="nombre">👤 <?php echo htmlspecialchars($entrega['estudiante_nombre']); ?></div>
-                    <div class="archivo">📄 <?php echo htmlspecialchars($entrega['nombre_archivo']); ?></div>
-                    <div>
-                        <span class="calificacion">⭐ <?php echo $entrega['calificacion']; ?>/20</span>
-                        <span class="badge-calificada">✅ Calificada</span>
-                    </div>
-                    <?php if ($entrega['comentario']): ?>
-                        <div class="comentario">💬 <?php echo htmlspecialchars($entrega['comentario']); ?></div>
-                    <?php endif; ?>
-                    <div class="fecha">📅 <?php echo $entrega['fecha_calificacion']; ?></div>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+    <!-- Calificación actual -->
+    <?php if (!empty($entrega['calificacion'])): ?>
+        <div class="nota-actual">
+            ✅ <strong>Calificación actual:</strong> <strong><?php echo number_format($entrega['calificacion'], 2); ?>/20</strong>
+            <?php if (!empty($entrega['comentario'])): ?>
+                <br><span style="color:#555;">💬 <?php echo htmlspecialchars($entrega['comentario']); ?></span>
+            <?php endif; ?>
+            <br><span style="font-size:12px; color:#888;">🕐 <?php echo date('d/m/Y H:i', strtotime($entrega['fecha_calificacion'])); ?></span>
+        </div>
+    <?php endif; ?>
+
+    <!-- Formulario de calificación -->
+    <div class="form-calificar">
+        <h3 style="color:#1a237e; margin-bottom:16px;"><?php echo !empty($entrega['calificacion']) ? '✏️ Editar Calificación' : '⭐ Nueva Calificación'; ?></h3>
+        <form method="POST">
+            <label for="calificacion">Calificación (0 - 20):</label>
+            <input type="number" id="calificacion" name="calificacion" step="0.01" min="0" max="20" required
+                   value="<?php echo !empty($entrega['calificacion']) ? number_format($entrega['calificacion'], 2) : ''; ?>">
+            <div class="nota-escala">Escala: 0.00 a 20.00 (usa punto o coma para decimales)</div>
+            
+            <label for="comentario">Comentario / Retroalimentación:</label>
+            <textarea id="comentario" name="comentario" rows="4" placeholder="Escribe un comentario para el estudiante..."><?php echo !empty($entrega['comentario']) ? htmlspecialchars($entrega['comentario']) : ''; ?></textarea>
+            
+            <button type="submit" class="btn-guardar">💾 Guardar Calificación</button>
+            <a href="../panel_profesor_tareas.php" class="btn-volver">Cancelar</a>
+        </form>
     </div>
 </div>
 
