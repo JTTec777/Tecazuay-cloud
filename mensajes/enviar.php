@@ -1,14 +1,11 @@
-<?php
+k<?php
 require_once '../config.php';
-$titulo = 'Enviar Mensaje - TEC AZUAY';
-$base_path = '..';
-include '../includes/header.php';
 
 $user_id = $_SESSION['user_id'];
 $mensaje = '';
 $error = '';
 
-// Obtener destinatario por defecto (si viene por GET)
+// OBTENER DESTINATARIO POR DEFECTO (si viene por GET)
 $destinatario_id = isset($_GET['para']) ? (int)$_GET['para'] : 0;
 $destinatario_nombre = '';
 if ($destinatario_id > 0) {
@@ -20,11 +17,13 @@ if ($destinatario_id > 0) {
     }
 }
 
-// Obtener lista de usuarios (para el selector)
+// OBTENER LISTA DE USUARIOS
 $stmt = $pdo->query("SELECT id, nombre, rol_id FROM usuarios WHERE id != $user_id ORDER BY nombre");
 $usuarios = $stmt->fetchAll();
 
-// Procesar envío
+// ============================================
+// PROCESAR ENVÍO PRIMERO (antes de cualquier output HTML)
+// ============================================
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $destinatario = (int)$_POST['destinatario'];
     $asunto = trim($_POST['asunto']);
@@ -50,6 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = '❌ Todos los campos son obligatorios';
     }
 }
+
+// ============================================
+// AHORA SÍ SE INCLUYE EL HEADER (después de toda la lógica PHP)
+// ============================================
+$titulo = 'Enviar Mensaje - TEC AZUAY';
+$base_path = '..';
+include '../includes/header.php';
 ?>
 <style>
     .form-mensaje { background: white; border-radius: 16px; padding: 25px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 20px rgba(26,35,126,0.06); }

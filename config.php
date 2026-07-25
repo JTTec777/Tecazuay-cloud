@@ -3,18 +3,22 @@
 // CONFIGURACIÓN PARA RENDER / SUPABASE / POSTGRESQL
 // ============================================
 
+// Variables de conexión PostgreSQL (5 separadas para evitar problemas de parseo)
 $host = getenv('DB_HOST') ?: 'localhost';
 $port = getenv('DB_PORT') ?: '5432';
 $dbname = getenv('DB_NAME') ?: 'postgres';
 $user = getenv('DB_USER') ?: 'postgres';
 $pass = getenv('DB_PASS') ?: '';
 
+// Variables de Supabase Storage
 $supabaseUrl = getenv('SUPABASE_URL') ?: '';
 $supabaseKey = getenv('SUPABASE_KEY') ?: '';
+
+// JWT
 $jwtSecret = getenv('JWT_SECRET') ?: 'default_secret_change_me';
 
 // ============================================
-// SESIONES (PostgreSQL compatible con PaaS)
+// SESIONES SEGURAS
 // ============================================
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', 1);
@@ -37,7 +41,7 @@ if (isset($_SESSION['ultima_actividad']) && (time() - $_SESSION['ultima_activida
 $_SESSION['ultima_actividad'] = time();
 
 // ============================================
-// CONEXIÓN POSTGRESQL (Supabase) - SIN PARSEAR URL
+// CONEXIÓN POSTGRESQL (Supabase)
 // ============================================
 try {
     $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require";
@@ -50,7 +54,7 @@ try {
 }
 
 // ============================================
-// SUPABASE STORAGE (para archivos)
+// SUPABASE STORAGE (subir/borrar archivos)
 // ============================================
 
 function supabaseUpload($filePath, $fileName, $mimeType = 'application/octet-stream') {
@@ -62,7 +66,7 @@ function supabaseUpload($filePath, $fileName, $mimeType = 'application/octet-str
     
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "Authorization: Bearer $supabaseKey",
@@ -77,6 +81,7 @@ function supabaseUpload($filePath, $fileName, $mimeType = 'application/octet-str
     if ($httpCode == 200 || $httpCode == 201) {
         return "$supabaseUrl/storage/v1/object/public/$bucket/$fileName";
     }
+    error_log("Supabase upload failed. HTTP: $httpCode | Response: $response | URL: $url");
     return false;
 }
 
@@ -99,6 +104,7 @@ function supabaseDelete($fileName) {
 // ============================================
 // FUNCIONES DE SEGURIDAD
 // ============================================
+
 function sanitizar($input) {
     return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
 }
