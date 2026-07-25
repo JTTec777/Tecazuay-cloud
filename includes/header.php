@@ -109,7 +109,7 @@ elseif (strpos($_SERVER['SCRIPT_NAME'], '/includes/') !== false) $base_path = '.
                     <a href="<?php echo $base_path; ?>/calificaciones/ver.php" class="header-link">📊 Calificaciones</a>
                 <?php endif; ?>
                 <?php if ($rol == 'profesor'): ?>
-                    <a href="<?php echo $base_path; ?>/calificaciones/calificar.php" class="header-link">📊 Calificar</a>
+                    <a href="<?php echo $base_path; ?>/panel_profesor_tareas.php" class="header-link">📊 Calificar</a>
                 <?php endif; ?>
                 <a href="<?php echo $base_path; ?>/mensajes/" class="header-link">
                     💬 Mensajes
@@ -128,6 +128,4 @@ elseif (strpos($_SERVER['SCRIPT_NAME'], '/includes/') !== false) $base_path = '.
                 <a href="<?php echo $base_path; ?>/logout.php" class="btn-logout">Cerrar Sesión</a>
             </div>
         </header>
-    </div>
-</body>
-</html>
+    <!-- NO CERRAMOS container, body ni html aquí. Se cierra en footer.php -->

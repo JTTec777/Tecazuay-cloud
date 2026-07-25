@@ -24,9 +24,9 @@ $stmt = $pdo->prepare("
     JOIN cursos c ON a.curso_id = c.id
     JOIN usuarios u ON e.estudiante_id = u.id
     LEFT JOIN calificaciones cal ON cal.entrega_id = e.id
-    WHERE e.id = ? AND c.profesor_id = ?
+    WHERE e.id = ?
 ");
-$stmt->execute([$entrega_id, $profesor_id]);
+$stmt->execute([$entrega_id]);
 $entrega = $stmt->fetch();
 
 if (!$entrega) {
@@ -35,7 +35,7 @@ if (!$entrega) {
 }
 
 // Procesar calificación
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['calificacion'])) {
     $nota = (float)str_replace(',', '.', $_POST['calificacion']);
     $comentario = trim($_POST['comentario'] ?? '');
     
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         
-        header('Location: ../panel_profesor_tareas.php?exito=1');
+        header('Location: ../panel_profesor_tareas.php?exito=calificado');
         exit();
     } else {
         $error = '❌ La calificación debe estar entre 0 y 20';
@@ -82,7 +82,7 @@ include '../includes/header.php';
     .calificar-container { max-width: 900px; margin: 0 auto; }
     .info-card { background: white; border-radius: 16px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(26,35,126,0.06); }
     .info-card h3 { color: #1a237e; margin-bottom: 12px; font-size: 18px; }
-    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 14px; }
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 14px; flex-wrap: wrap; gap: 5px; }
     .info-row:last-child { border-bottom: none; }
     .info-row strong { color: #1a237e; }
     .doc-preview { background: #f8f9ff; border: 2px dashed #1a237e; border-radius: 12px; padding: 30px; text-align: center; margin: 15px 0; }
@@ -113,7 +113,7 @@ include '../includes/header.php';
         <div class="mensaje-error"><?php echo $error; ?></div>
     <?php endif; ?>
 
-    <!-- Información de la entrega -->
+    <!-- Información -->
     <div class="info-card">
         <h3>📋 Información de la Entrega</h3>
         <div class="info-row">
@@ -126,7 +126,7 @@ include '../includes/header.php';
         </div>
     </div>
 
-    <!-- Documento del estudiante -->
+    <!-- Documento -->
     <div class="info-card">
         <h3>📄 Documento Entregado</h3>
         <?php if (!empty($entrega['ruta_archivo'])): ?>
@@ -151,10 +151,10 @@ include '../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <!-- Formulario de calificación -->
+    <!-- Formulario -->
     <div class="form-calificar">
         <h3 style="color:#1a237e; margin-bottom:16px;"><?php echo !empty($entrega['calificacion']) ? '✏️ Editar Calificación' : '⭐ Nueva Calificación'; ?></h3>
-        <form method="POST">
+        <form method="POST" action="calificar.php?entrega_id=<?php echo $entrega_id; ?>">
             <label for="calificacion">Calificación (0 - 20):</label>
             <input type="number" id="calificacion" name="calificacion" step="0.01" min="0" max="20" required
                    value="<?php echo !empty($entrega['calificacion']) ? number_format($entrega['calificacion'], 2) : ''; ?>">

@@ -24,7 +24,7 @@ $stmt = $pdo->query("
 ");
 $entregas = $stmt->fetchAll();
 
-// Contar cursos totales (para estadísticas)
+// Contar cursos totales
 $stmt = $pdo->query("SELECT COUNT(*) FROM cursos WHERE activo = TRUE");
 $total_cursos = $stmt->fetchColumn();
 ?>
@@ -48,6 +48,7 @@ $total_cursos = $stmt->fetchColumn();
     .empty-state h3 { color: #1a237e; margin-bottom: 8px; }
 </style>
 
+<!-- Stats -->
 <div class="stats-grid">
     <div class="stat-card">
         <h3><?php echo $total_cursos; ?></h3>
@@ -67,8 +68,10 @@ $total_cursos = $stmt->fetchColumn();
     </div>
 </div>
 
+<!-- Título -->
 <h2 style="color:#1a237e; margin-bottom:20px;">📋 Entregas de Estudiantes</h2>
 
+<!-- Tabla -->
 <?php if (count($entregas) == 0): ?>
     <div class="empty-state">
         <h3>📭 No hay entregas aún</h3>
