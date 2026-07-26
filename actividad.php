@@ -39,10 +39,18 @@ $entrega = $stmt->fetch();
 
 // Procesar eliminación
 if (isset($_GET['eliminar']) && $entrega) {
+    // 1. Primero borrar calificación (si existe) para evitar foreign key violation
+    $stmt = $pdo->prepare("DELETE FROM calificaciones WHERE entrega_id = ?");
+    $stmt->execute([$entrega['id']]);
+    
+    // 2. Borrar archivo de Supabase Storage
     $nombre_archivo = basename($entrega['ruta_archivo']);
     supabaseDelete($nombre_archivo);
+    
+    // 3. Finalmente borrar la entrega
     $stmt = $pdo->prepare("DELETE FROM entregas WHERE id = ?");
     $stmt->execute([$entrega['id']]);
+    
     header('Location: actividad.php?id=' . $actividad_id . '&exito=Entrega eliminada correctamente');
     exit();
 }
