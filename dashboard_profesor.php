@@ -275,16 +275,16 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
         </header>
 
         <!-- Botones de acceso rápido -->
-        <div class="botones-container">
+	<div class="botones-container">
             <a href="calendar.php" class="btn-calendar">📅 Calendario</a>
             <a href="panel_profesor_tareas.php" class="btn-entregas">📋 Entregas</a>
-            <a href="cursos/" class="btn-cursos">📚 Cursos</a>
-            <a href="panel_profesor_tareas.php" class="btn-calificar">📊 Calificar</a>
-            <a href="mensajes/" class="btn-mensajes">💬 Mensajes</a>
-            <a href="notificaciones/" class="btn-notificaciones">🔔 Notificaciones</a>
+            <a href="panel_profesor_mis_actividades.php" class="btn-cursos">📝 Mis Actividades</a>
+            <a href="panel_profesor_crear_actividad.php" class="btn-calificar">➕ Crear Tarea</a>
+            <a href="cursos/" class="btn-mensajes">📚 Cursos</a>
+            <a href="mensajes/" class="btn-notificaciones">💬 Mensajes</a>
+            <a href="notificaciones/" class="btn-anuncios">🔔 Notificaciones</a>
             <a href="anuncios/" class="btn-anuncios">📢 Anuncios</a>
         </div>
-
         <!-- Welcome Banner -->
         <div class="welcome-banner">
             <h2><?php echo t('welcome_professor'); ?> <?php echo $nombre_usuario; ?>! 📚</h2>
