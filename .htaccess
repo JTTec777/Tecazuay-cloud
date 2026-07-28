@@ -1,37 +1,31 @@
 # ============================================
-# SEGURIDAD
+# SEGURIDAD BÁSICA
 # ============================================
 
-# 1. Bloquear listado de directorios
 Options -Indexes
-
-# 2. Archivo por defecto
 DirectoryIndex index.php
 
-# 3. Bloquear acceso directo a config.php
+# Bloquear acceso directo a config.php
 <Files "config.php">
     Require all denied
 </Files>
 
 # ============================================
-# REDIRECCIÓN DE ERRORES A INDEX.PHP
-# ============================================
-
-ErrorDocument 404 /index.php
-ErrorDocument 403 /index.php
-ErrorDocument 500 /index.php
-
-# ============================================
-# REESCRITURA: Cualquier URL inexistente → index.php
+# REESCRITURA INTERNA (sin redirección visible)
 # ============================================
 RewriteEngine On
 
-# Si no es un archivo real...
+# Si NO es un archivo real...
 RewriteCond %{REQUEST_FILENAME} !-f
-# ...y no es un directorio real...
+# ...y NO es un directorio real...
 RewriteCond %{REQUEST_FILENAME} !-d
-# ...redirige todo a index.php
-RewriteRule ^(.*)$ /index.php [L,R=302]
+# ...sirve index.php internamente (la URL no cambia en el navegador)
+RewriteRule ^ /index.php [L]
+
+# ============================================
+# ERRORES: solo 404, NO tocar 403 (lo maneja el WAF)
+# ============================================
+ErrorDocument 404 /index.php
 
 # ============================================
 # HEADERS DE SEGURIDAD
