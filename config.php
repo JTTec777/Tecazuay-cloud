@@ -132,4 +132,83 @@ function verificarSesion() {
     if (isset($_SESSION['user_agent']) && $_SESSION['user_agent'] !== $ua_actual) { session_destroy(); header('Location: ../index.php?error=sesion_invalida'); exit(); }
 }
 function mostrarSeguro($texto) { return htmlspecialchars($texto, ENT_QUOTES, 'UTF-8'); }
+
+// ============================================
+// 2FA / TOTP (Google Authenticator compatible)
+// ============================================
+
+function base32_encode($data) {
+    $map = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    $encoded = '';
+    $bits = 0;
+    $value = 0;
+    for ($i = 0; $i < strlen($data); $i++) {
+        $value = ($value << 8) | ord($data[$i]);
+        $bits += 8;
+        while ($bits >= 5) {
+            $encoded .= $map[($value >> ($bits - 5)) & 31];
+            $bits -= 5;
+        }
+    }
+    if ($bits > 0) {
+        $encoded .= $map[($value << (5 - $bits)) & 31];
+    }
+    return $encoded;
+}
+
+function base32_decode($input) {
+    $map = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    $decoded = '';
+    $bits = 0;
+    $value = 0;
+    $input = strtoupper($input);
+    for ($i = 0; $i < strlen($input); $i++) {
+        $char = $input[$i];
+        $pos = strpos($map, $char);
+        if ($pos === false) continue;
+        $value = ($value << 5) | $pos;
+        $bits += 5;
+        if ($bits >= 8) {
+            $decoded .= chr(($value >> ($bits - 8)) & 255);
+            $bits -= 8;
+        }
+    }
+    return $decoded;
+}
+
+function generateTOTPSecret($length = 16) {
+    return base32_encode(random_bytes($length));
+}
+
+function getTOTPCode($secret, $timeStep = 30, $digits = 6, $time = null) {
+    $time = $time ?? time();
+    $secret = base32_decode($secret);
+    $time = pack('N*', 0) . pack('N*', intval($time / $timeStep));
+    $hm = hash_hmac('sha1', $time, $secret, true);
+    $offset = ord($hm[19]) & 0x0F;
+    $code = (
+        ((ord($hm[$offset]) & 0x7F) << 24) |
+        ((ord($hm[$offset + 1]) & 0xFF) << 16) |
+        ((ord($hm[$offset + 2]) & 0xFF) << 8) |
+        (ord($hm[$offset + 3]) & 0xFF)
+    ) % pow(10, $digits);
+    return str_pad($code, $digits, '0', STR_PAD_LEFT);
+}
+
+function verifyTOTPCode($secret, $code, $window = 1) {
+    $time = time();
+    for ($i = -$window; $i <= $window; $i++) {
+        if (getTOTPCode($secret, 30, 6, $time + ($i * 30)) === $code) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getQRCodeUrl($username, $secret, $issuer = 'TEC AZUAY') {
+    $label = urlencode($issuer . ':' . $username);
+    $issuer = urlencode($issuer);
+    $otpauth = "otpauth://totp/{$label}?secret={$secret}&issuer={$issuer}";
+    return "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($otpauth);
+}
 ?>

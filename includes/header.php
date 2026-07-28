@@ -33,6 +33,7 @@ elseif (strpos($_SERVER['SCRIPT_NAME'], '/calificaciones/') !== false) $base_pat
 elseif (strpos($_SERVER['SCRIPT_NAME'], '/mensajes/') !== false) $base_path = '..';
 elseif (strpos($_SERVER['SCRIPT_NAME'], '/notificaciones/') !== false) $base_path = '..';
 elseif (strpos($_SERVER['SCRIPT_NAME'], '/anuncios/') !== false) $base_path = '..';
+elseif (strpos($_SERVER['SCRIPT_NAME'], '/tareas/') !== false) $base_path = '..';
 elseif (strpos($_SERVER['SCRIPT_NAME'], '/includes/') !== false) $base_path = '..';
 ?>
 <!DOCTYPE html>
@@ -105,10 +106,10 @@ elseif (strpos($_SERVER['SCRIPT_NAME'], '/includes/') !== false) $base_path = '.
             <div class="header-right">
                 <span class="user-name">👋 <?php echo $nombre_usuario; ?></span>
                 <a href="<?php echo $base_path; ?>/cursos/" class="header-link">📚 Cursos</a>
-		<?php if ($rol == 'estudiante'): ?>
-    		    <a href="<?php echo $base_path; ?>/tareas/" class="header-link">📋 Tareas</a>
-    		    <a href="<?php echo $base_path; ?>/calificaciones/ver.php" class="header-link">📊 Calificaciones</a>
-		<?php endif; ?>               
+                <?php if ($rol == 'estudiante'): ?>
+                    <a href="<?php echo $base_path; ?>/tareas/" class="header-link">📋 Tareas</a>
+                    <a href="<?php echo $base_path; ?>/calificaciones/ver.php" class="header-link">📊 Calificaciones</a>
+                <?php endif; ?>               
                 <?php if ($rol == 'profesor'): ?>
                     <a href="<?php echo $base_path; ?>/panel_profesor_tareas.php" class="header-link">📊 Calificar</a>
                 <?php endif; ?>
@@ -124,6 +125,7 @@ elseif (strpos($_SERVER['SCRIPT_NAME'], '/includes/') !== false) $base_path = '.
                         <span class="badge"><?php echo $notificaciones_no_leidas; ?></span>
                     <?php endif; ?>
                 </a>
+                <a href="<?php echo $base_path; ?>/seguridad.php" class="header-link">🔐 Seguridad</a>
                 <a href="<?php echo $base_path; ?>/anuncios/" class="header-link">📢 Anuncios</a>
                 <a href="<?php echo $base_path; ?>/dashboard_<?php echo $rol; ?>.php" class="header-link">🏠 Inicio</a>
                 <a href="<?php echo $base_path; ?>/logout.php" class="btn-logout">Cerrar Sesión</a>
