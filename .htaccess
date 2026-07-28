@@ -1,50 +1,53 @@
-# SEGURIDAD - SIN REWRITE
+# ============================================
+# .htaccess - Configuración de seguridad y URLs amigables
 # ============================================
 
-# 1. Bloquear listado de directorios
+# ============================================
+# OCULTAR INFORMACIÓN DEL SERVIDOR
+# ============================================
+ServerSignature Off
+ServerTokens Prod
 Options -Indexes
 
-# 2. Archivo por defecto
-DirectoryIndex index.php
-
-# 3. Bloquear acceso a config.php
-<Files "config.php">
-    Require all denied
-</Files>
-
-# 4. Redirigir errores 404
-ErrorDocument 404 /tecazuay/index.php
+# ============================================
+# REDIRIGIR ERRORES 404 AL INDEX
+# ============================================
+ErrorDocument 404 /index.php
+ErrorDocument 403 /index.php
 
 # ============================================
-# HEADERS DE SEGURIDAD
+# REESCRIBIR URLs (para que todo vaya a index.php si no existe)
 # ============================================
-<IfModule mod_headers.c>
-    Header set X-XSS-Protection "1; mode=block"
-    Header set X-Content-Type-O…
-# ============================================
-# SEGURIDAD - SIN REWRITE
-# ============================================
-
-# 1. Bloquear listado de directorios
-Options -Indexes
-
-# 2. Archivo por defecto
-DirectoryIndex index.php
-
-# 3. Bloquear acceso a config.php
-<Files "config.php">
-    Require all denied
-</Files>
-
-# 4. Redirigir errores 404
-ErrorDocument 404 /tecazuay/index.php
-
-# ============================================
-# HEADERS DE SEGURIDAD
-# ============================================
-<IfModule mod_headers.c>
-    Header set X-XSS-Protection "1; mode=block"
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "DENY"
-    Header set Referrer-Policy "no-referrer-when-downgrade"
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Si el archivo o carpeta no existe, redirige a index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php [L]
 </IfModule>
+
+# ============================================
+# BLOQUEAR ACCESO A ARCHIVOS SENSIBLES
+# ============================================
+<FilesMatch "\.(env|config|log|ini|sql|git|json|lock|md)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# ============================================
+# PROTEGER CARPETAS SENSIBLES
+# ============================================
+<DirectoryMatch "/(includes|vendor|uploads|storage)/">
+    Order Allow,Deny
+    Deny from all
+</DirectoryMatch>
+
+# ============================================
+# SEGURIDAD ADICIONAL PARA .htaccess
+# ============================================
+<Files ".htaccess">
+    Order Allow,Deny
+    Deny from all
+</Files>
