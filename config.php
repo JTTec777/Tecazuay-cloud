@@ -209,6 +209,7 @@ function getQRCodeUrl($username, $secret, $issuer = 'TEC AZUAY') {
     $label = urlencode($issuer . ':' . $username);
     $issuer = urlencode($issuer);
     $otpauth = "otpauth://totp/{$label}?secret={$secret}&issuer={$issuer}";
-    return "https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=" . urlencode($otpauth);
+    // API alternativa gratuita y estable
+    return "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($otpauth);
 }
 ?>
