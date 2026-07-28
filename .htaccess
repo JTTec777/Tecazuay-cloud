@@ -1,32 +1,45 @@
 # ============================================
-# SEGURIDAD 
+# SEGURIDAD
 # ============================================
 
 Options -Indexes
 DirectoryIndex index.php
 
 # ============================================
-# REESCRITURA INTERNA
+# REESCRITURA: PROTEGER ARCHIVOS SENSIBLES
 # ============================================
+
 RewriteEngine On
 
-# Redirigir config.php internamente (por si acaso)
-RewriteRule ^config\.php$ /index.php [L]
+# 1. TODO lo que empiece con punto (.htaccess, .env, .git/, .gitignore, etc.)
+RewriteRule ^\. /index.php [L]
 
-# Si NO es archivo real ni directorio real, reescribir a index.php
+# 2. Archivos de configuración y scripts de utilidad
+RewriteRule ^(config|languages|update_passwords)\.php$ /index.php [L]
+RewriteRule ^(Dockerfile|docker-compose\.yml)$ /index.php [L]
+
+# 3. Backups, logs y dumps de base de datos
+RewriteRule .*\.(sql|sqlite|db|bak|old|swp|log|zip|tar|gz|rar)$ /index.php [L]
+
+# 4. Carpeta includes/ (parciales PHP que no son páginas)
+RewriteRule ^includes/ /index.php [L]
+
+# 5. Si NO es un archivo real ni directorio real, reescribir a index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ /index.php [L]
 
 # ============================================
-# ERRORES: capturar 403 y 404 para enviar a index.php
+# ERRORES: capturar 403 y 404
 # ============================================
+
 ErrorDocument 403 /index.php
 ErrorDocument 404 /index.php
 
 # ============================================
 # HEADERS DE SEGURIDAD
 # ============================================
+
 <IfModule mod_headers.c>
     Header set X-XSS-Protection "1; mode=block"
     Header set X-Content-Type-Options "nosniff"
