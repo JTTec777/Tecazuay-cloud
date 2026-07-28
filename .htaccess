@@ -1,27 +1,16 @@
-# ============================================
-# SEGURIDAD - SIN REWRITE
-# ============================================
-
-# 1. Bloquear listado de directorios
+ErrorDocument 404 /index.php
 Options -Indexes
 
-# 2. Archivo por defecto
-DirectoryIndex index.php
-
-# 3. Bloquear acceso a config.php
-<Files "config.php">
-    Require all denied
-</Files>
-
-# 4. Redirigir errores 404
-ErrorDocument 404 /tecazuay/index.php
-
 # ============================================
-# HEADERS DE SEGURIDAD
+# BLOQUEAR ACCESO A ARCHIVOS SENSIBLES
 # ============================================
-<IfModule mod_headers.c>
-    Header set X-XSS-Protection "1; mode=block"
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "DENY"
-    Header set Referrer-Policy "no-referrer-when-downgrade"
-</IfModule>
+<FilesMatch "\.(env|config|log|ini|sql|git|json|lock|md)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Proteger carpetas
+<DirectoryMatch "/(includes|vendor|uploads|storage)/">
+    Order Allow,Deny
+    Deny from all
+</DirectoryMatch>
