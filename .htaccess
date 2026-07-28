@@ -1,16 +1,8 @@
+# Redirigir errores 404 al index
 ErrorDocument 404 /index.php
+
+# Prevenir listado de directorios
 Options -Indexes
 
-# ============================================
-# BLOQUEAR ACCESO A ARCHIVOS SENSIBLES
-# ============================================
-<FilesMatch "\.(env|config|log|ini|sql|git|json|lock|md)$">
-    Order Allow,Deny
-    Deny from all
-</FilesMatch>
-
-# Proteger carpetas
-<DirectoryMatch "/(includes|vendor|uploads|storage)/">
-    Order Allow,Deny
-    Deny from all
-</DirectoryMatch>
+# Ocultar información del servidor
+ServerSignature Off
