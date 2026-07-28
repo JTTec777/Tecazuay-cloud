@@ -17,10 +17,13 @@ ServerSignature Off
 ServerTokens Prod
 
 # ============================================
-# REDIRIGIR CUALQUIER ACCESO A CARPETAS AL INDEX
+# REDIRIGIR CUALQUIER ACCESO A CARPETAS O ARCHIVOS NO AUTORIZADOS AL INDEX
 # ============================================
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    
+    # Si intentas acceder a .htaccess o archivos de configuración, redirige al index
+    RewriteRule ^(\.htaccess|config\.php|\.env|\.git) - [F,L]
     
     # Si intentas acceder a una carpeta (includes/, mensajes/, etc.)
     # redirige al index
@@ -32,3 +35,16 @@ ServerTokens Prod
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ /index.php [L]
 </IfModule>
+
+# ============================================
+# BLOQUEAR ACCESO DIRECTO A ARCHIVOS SENSIBLES
+# (Pero en lugar de mostrar error, redirigen al index)
+# ============================================
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|json|lock|md)$">
+    Require all denied
+</FilesMatch>
+
+# Bloquear acceso a config.php específicamente
+<Files "config.php">
+    Require all denied
+</Files>
