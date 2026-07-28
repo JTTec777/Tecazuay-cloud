@@ -1,29 +1,27 @@
 # ============================================
-# SEGURIDAD BÁSICA
+# SEGURIDAD 
 # ============================================
 
 Options -Indexes
 DirectoryIndex index.php
 
 # ============================================
-# REESCRITURA: Proteger archivos sensibles redirigiéndolos a index.php
+# REESCRITURA INTERNA
 # ============================================
 RewriteEngine On
 
-# Redirigir internamente config.php → index.php (no se muestra el código)
+# Redirigir config.php internamente (por si acaso)
 RewriteRule ^config\.php$ /index.php [L]
 
-# Redirigir internamente .htaccess → index.php
-RewriteRule ^\.htaccess$ /index.php [L]
-
-# Si NO es un archivo real y NO es un directorio real, reescribir a index.php
+# Si NO es archivo real ni directorio real, reescribir a index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ /index.php [L]
 
 # ============================================
-# ERRORES: solo 404, 403 lo maneja el rewrite de arriba
+# ERRORES: capturar 403 y 404 para enviar a index.php
 # ============================================
+ErrorDocument 403 /index.php
 ErrorDocument 404 /index.php
 
 # ============================================
