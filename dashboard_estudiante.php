@@ -43,7 +43,9 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
         .btn-notificaciones:hover { background: #7b1fa2; transform: translateY(-3px); }
         .btn-anuncios { display: inline-block; background: #e91e63; color: white; padding: 12px 28px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px; transition: 0.3s; box-shadow: 0 4px 16px rgba(233,30,99,0.3); }
         .btn-anuncios:hover { background: #c2185b; transform: translateY(-3px); }
-        .welcome-banner {
+        .btn-seguridad { display: inline-block; background: #607d8b; color: white; padding: 12px 28px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px; transition: 0.3s; box-shadow: 0 4px 16px rgba(96,125,139,0.3); }
+        .btn-seguridad:hover { background: #455a64; transform: translateY(-3px); box-shadow: 0 8px 25px rgba(96,125,139,0.5); }
+	.welcome-banner {
             background: linear-gradient(135deg, #1a237e 0%, #0d1457 100%);
             color: white; padding: 25px 30px; border-radius: 16px;
             margin-bottom: 25px; box-shadow: 0 8px 30px rgba(26,35,126,0.25);
@@ -80,13 +82,14 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             </div>
         </header>
 
-        <div class="botones-container">
+	<div class="botones-container">
             <a href="tareas/" class="btn-tareas">📋 Mis Tareas</a>
             <a href="calendar.php" class="btn-calendar">📅 Calendario</a>
             <a href="cursos/" class="btn-cursos">📚 Cursos</a>
             <a href="mensajes/" class="btn-mensajes">💬 Mensajes</a>
             <a href="notificaciones/" class="btn-notificaciones">🔔 Notificaciones</a>
             <a href="anuncios/" class="btn-anuncios">📢 Anuncios</a>
+            <a href="seguridad.php" class="btn-seguridad">🔐 Seguridad</a>
         </div>
 
         <div class="welcome-banner">

@@ -275,7 +275,7 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
         </header>
 
         <!-- Botones de acceso rápido -->
-	<div class="botones-container">
+ 	<div class="botones-container">
             <a href="calendar.php" class="btn-calendar">📅 Calendario</a>
             <a href="panel_profesor_tareas.php" class="btn-entregas">📋 Entregas</a>
             <a href="panel_profesor_mis_actividades.php" class="btn-cursos">📝 Mis Actividades</a>
@@ -284,7 +284,9 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             <a href="mensajes/" class="btn-notificaciones">💬 Mensajes</a>
             <a href="notificaciones/" class="btn-anuncios">🔔 Notificaciones</a>
             <a href="anuncios/" class="btn-anuncios">📢 Anuncios</a>
+            <a href="seguridad.php" class="btn-seguridad">🔐 Seguridad</a>
         </div>
+
         <!-- Welcome Banner -->
         <div class="welcome-banner">
             <h2><?php echo t('welcome_professor'); ?> <?php echo $nombre_usuario; ?>! 📚</h2>
