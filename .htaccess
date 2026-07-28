@@ -1,50 +1,18 @@
-# ============================================
-# REDIRIGIR TODOS LOS ERRORES AL INDEX
-# ============================================
+# Redirigir errores al login
 ErrorDocument 403 /index.php
 ErrorDocument 404 /index.php
-ErrorDocument 500 /index.php
 
-# ============================================
-# PREVENIR LISTADO DE DIRECTORIOS
-# ============================================
+# No mostrar listado de archivos
 Options -Indexes
 
-# ============================================
-# OCULTAR INFORMACIÓN DEL SERVIDOR
-# ============================================
-ServerSignature Off
-ServerTokens Prod
+# Redirigir carpetas y archivos inexistentes al login
+RewriteEngine On
 
-# ============================================
-# REDIRIGIR CUALQUIER ACCESO A CARPETAS O ARCHIVOS NO AUTORIZADOS AL INDEX
-# ============================================
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    
-    # Si intentas acceder a .htaccess o archivos de configuración, redirige al index
-    RewriteRule ^(\.htaccess|config\.php|\.env|\.git) - [F,L]
-    
-    # Si intentas acceder a una carpeta (includes/, mensajes/, etc.)
-    # redirige al index
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^(.*)$ /index.php [L,R=302]
-    
-    # Si el archivo no existe, redirige al index
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ /index.php [L]
-</IfModule>
+# Si es una carpeta, redirige al index
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.*)$ /index.php [L,R=302]
 
-# ============================================
-# BLOQUEAR ACCESO DIRECTO A ARCHIVOS SENSIBLES
-# (Pero en lugar de mostrar error, redirigen al index)
-# ============================================
-<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|json|lock|md)$">
-    Require all denied
-</FilesMatch>
-
-# Bloquear acceso a config.php específicamente
-<Files "config.php">
-    Require all denied
-</Files>
+# Si el archivo no existe, redirige al index
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ /index.php [L]
