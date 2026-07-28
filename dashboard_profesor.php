@@ -190,6 +190,8 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(233, 30, 99, 0.5);
         }
+	.btn-seguridad { display: inline-block; background: #607d8b; color: white; padding: 12px 28px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px; transition: 0.3s; box-shadow: 0 4px 16px rgba(96,125,139,0.3); }
+        .btn-seguridad:hover { background: #455a64; transform: translateY(-3px); box-shadow: 0 8px 25px rgba(96,125,139,0.5); }
         .botones-container {
             display: flex;
             flex-wrap: wrap;
