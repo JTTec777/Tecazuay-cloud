@@ -191,9 +191,7 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             box-shadow: 0 8px 25px rgba(233, 30, 99, 0.5);
         }
 	.btn-seguridad {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            display: inline-block;
             background: #607d8b;
             color: white;
             padding: 12px 32px;
@@ -202,16 +200,13 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             font-weight: 700;
             font-size: 15px;
             transition: 0.3s;
-            box-shadow: 0 4px 16px rgba(96,125,139,0.3);
-            min-height: 48px;
-            line-height: 1;
-            border: none;
-            vertical-align: middle;
+            box-shadow: 0 4px 16px rgba(96, 125, 139, 0.3);
+            margin-bottom: 25px;
         }
         .btn-seguridad:hover {
             background: #455a64;
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(96,125,139,0.5);
+            box-shadow: 0 8px 25px rgba(96, 125, 139, 0.5);
         }
 	.botones-container {
             display: flex;
