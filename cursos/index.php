@@ -1,69 +1,83 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once '../config.php';
+$titulo = 'Cursos - TEC AZUAY';
+$base_path = '..';
+include '../includes/header.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../index.php');
-    exit();
-}
-
-$rol = strtolower(trim($_SESSION['user_rol'] ?? ''));
+$rol = $_SESSION['user_rol'];
 $user_id = $_SESSION['user_id'];
 
-try {
-    $stmt = $pdo->query("SELECT id, nombre, descripcion, activo FROM cursos ORDER BY id");
-    $cursos = $stmt->fetchAll();
-} catch (Exception $e) {
-    $cursos = [];
-    $error = 'No se pudieron cargar los cursos.';
+if ($rol == 'estudiante') {
+    // Ver cursos del estudiante
+    $stmt = $pdo->prepare("
+        SELECT c.*, u.nombre as profesor_nombre
+        FROM cursos c
+        JOIN inscripciones i ON c.id = i.curso_id
+        JOIN usuarios u ON c.profesor_id = u.id
+        WHERE i.estudiante_id = ?
+        ORDER BY c.nombre
+    ");
+    $stmt->execute([$user_id]);
+} else {
+    // Ver todos los cursos (profesor)
+    $stmt = $pdo->prepare("
+        SELECT c.*, u.nombre as profesor_nombre,
+        (SELECT COUNT(*) FROM inscripciones WHERE curso_id = c.id) as estudiantes_count
+        FROM cursos c
+        JOIN usuarios u ON c.profesor_id = u.id
+        ORDER BY c.nombre
+    ");
+    $stmt->execute();
 }
+$cursos = $stmt->fetchAll();
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Cursos - TEC AZUAY</title>
-    <link rel="stylesheet" href="../style.css">
-    <style>
-        body { background:#f0f2f5; font-family:'Inter',sans-serif; }
-        .container { max-width:1100px; margin:0 auto; padding:20px; }
-        .header { background:white; padding:20px 30px; border-radius:16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 20px rgba(26,35,126,0.08); margin-bottom:25px; border-left:4px solid #dcc97a; flex-wrap:wrap; gap:15px; }
-        .header h1 { color:#1a237e; font-size:22px; font-weight:800; }
-        .btn-volver { background:#1a237e; color:white; padding:8px 20px; border-radius:10px; text-decoration:none; font-weight:600; font-size:13px; }
-        .btn-volver:hover { background:#0d1457; }
-        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:15px; }
-        .card { background:white; border-radius:16px; padding:20px; box-shadow:0 4px 20px rgba(26,35,126,0.06); border-left:4px solid #1a237e; }
-        .card h3 { color:#1a237e; font-size:16px; margin-bottom:8px; }
-        .card p { color:#666; font-size:13px; margin-bottom:12px; }
-        .badge { display:inline-block; padding:4px 12px; border-radius:12px; font-size:11px; font-weight:700; }
-        .badge-activo { background:#e8f5e9; color:#2e7d32; }
-        .badge-inactivo { background:#ffebee; color:#c62828; }
-        .vacio { text-align:center; color:#888; padding:40px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📚 Cursos Disponibles</h1>
-            <a href="../dashboard_<?php echo $rol; ?>.php" class="btn-volver">← Volver al Dashboard</a>
-        </div>
-        <?php if (!empty($error)): ?>
-            <div style="background:#ffebee;color:#c62828;padding:12px 20px;border-radius:10px;margin-bottom:20px;font-weight:600;"><?php echo $error; ?></div>
-        <?php endif; ?>
-        <?php if (empty($cursos)): ?>
-            <div class="vacio">No hay cursos disponibles.</div>
+<style>
+    .cursos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .curso-card { background: white; border-radius: 16px; padding: 22px; box-shadow: 0 4px 20px rgba(26,35,126,0.06); border: 1px solid rgba(26,35,126,0.04); transition: 0.3s; }
+    .curso-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(26,35,126,0.12); }
+    .curso-card .curso-nombre { color: #1a237e; font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .curso-card .curso-profesor { color: #666; font-size: 13px; margin-bottom: 8px; }
+    .curso-card .curso-desc { color: #444; font-size: 13px; line-height: 1.5; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .curso-card .curso-meta { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e8eaf6; padding-top: 10px; }
+    .curso-card .curso-meta .estudiantes { color: #666; font-size: 12px; }
+    .btn-curso { background: #1a237e; color: white; padding: 6px 16px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600; transition: 0.3s; }
+    .btn-curso:hover { background: #0d1457; transform: scale(1.05); }
+    .btn-crear { display: inline-block; background: #dcc97a; color: #1a237e; padding: 8px 24px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; transition: 0.3s; }
+    .btn-crear:hover { background: #c4b15a; transform: translateY(-2px); }
+    .empty-message { color: #999; text-align: center; padding: 40px; font-size: 16px; }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+    <h2 style="color:#1a237e;">📚 Mis Cursos</h2>
+    <?php if ($rol == 'profesor'): ?>
+        <a href="crear.php" class="btn-crear">➕ Crear Curso</a>
+    <?php endif; ?>
+</div>
+
+<?php if (count($cursos) == 0): ?>
+    <div class="empty-message">
+        <?php if ($rol == 'estudiante'): ?>
+            📭 No estás inscrito en ningún curso aún. 
+            <br><small style="color:#aaa;">Pide a tu profesor que te inscriba o busca cursos disponibles.</small>
         <?php else: ?>
-            <div class="grid">
-                <?php foreach ($cursos as $c): ?>
-                <div class="card">
-                    <h3><?php echo htmlspecialchars($c['nombre']); ?></h3>
-                    <p><?php echo htmlspecialchars($c['descripcion'] ?? ''); ?></p>
-                    <span class="badge <?php echo ($c['activo'] ?? 0) ? 'badge-activo' : 'badge-inactivo'; ?>">
-                        <?php echo ($c['activo'] ?? 0) ? '✅ Activo' : '❌ Inactivo'; ?>
-                    </span>
-                </div>
-                <?php endforeach; ?>
-            </div>
+            📭 No has creado ningún curso aún.
+            <br><small style="color:#aaa;">Haz clic en "Crear Curso" para comenzar.</small>
         <?php endif; ?>
     </div>
-</body>
-</html>
+<?php else: ?>
+    <div class="cursos-grid">
+        <?php foreach($cursos as $curso): ?>
+            <div class="curso-card">
+                <div class="curso-nombre">📘 <?php echo htmlspecialchars($curso['nombre']); ?></div>
+                <div class="curso-profesor">👨‍🏫 <?php echo htmlspecialchars($curso['profesor_nombre']); ?></div>
+                <div class="curso-desc"><?php echo htmlspecialchars($curso['descripcion'] ?: 'Sin descripción'); ?></div>
+                <div class="curso-meta">
+                    <span class="estudiantes">👥 <?php echo isset($curso['estudiantes_count']) ? $curso['estudiantes_count'] : '0'; ?> estudiantes</span>
+                    <a href="detalle.php?id=<?php echo $curso['id']; ?>" class="btn-curso">Ver Curso</a>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
+<?php include '../includes/footer.php'; ?>

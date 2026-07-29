@@ -1,74 +1,131 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once '../config.php';
+$titulo = 'Mensajes - TEC AZUAY';
+$base_path = '..';
+include '../includes/header.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../index.php');
-    exit();
-}
-
-$rol = strtolower(trim($_SESSION['user_rol'] ?? ''));
 $user_id = $_SESSION['user_id'];
+$rol = $_SESSION['user_rol'];
 
-try {
-    $stmt = $pdo->prepare("
-        SELECT m.*, u.nombre as remitente_nombre 
-        FROM mensajes m 
-        LEFT JOIN usuarios u ON m.remitente_id = u.id 
-        WHERE m.destinatario_id = ? 
-        ORDER BY m.fecha DESC
-    ");
-    $stmt->execute([$user_id]);
-    $mensajes = $stmt->fetchAll();
-} catch (Exception $e) {
-    $mensajes = [];
-    $error = 'No se pudieron cargar los mensajes.';
+// Marcar mensaje como leído
+if (isset($_GET['leer']) && isset($_GET['id'])) {
+    $id = (int)$_GET['id'];
+    $stmt = $pdo->prepare("UPDATE mensajes SET leido = TRUE WHERE id = ? AND destinatario_id = ?");
+    $stmt->execute([$id, $user_id]);
 }
+
+// Obtener mensajes recibidos
+$stmt = $pdo->prepare("
+    SELECT m.*, u.nombre as remitente_nombre
+    FROM mensajes m
+    JOIN usuarios u ON m.remitente_id = u.id
+    WHERE m.destinatario_id = ?
+    ORDER BY m.fecha_envio DESC
+");
+$stmt->execute([$user_id]);
+$recibidos = $stmt->fetchAll();
+
+// Obtener mensajes enviados
+$stmt = $pdo->prepare("
+    SELECT m.*, u.nombre as destinatario_nombre
+    FROM mensajes m
+    JOIN usuarios u ON m.destinatario_id = u.id
+    WHERE m.remitente_id = ?
+    ORDER BY m.fecha_envio DESC
+");
+$stmt->execute([$user_id]);
+$enviados = $stmt->fetchAll();
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Mensajes - TEC AZUAY</title>
-    <link rel="stylesheet" href="../style.css">
-    <style>
-        body { background:#f0f2f5; font-family:'Inter',sans-serif; }
-        .container { max-width:900px; margin:0 auto; padding:20px; }
-        .header { background:white; padding:20px 30px; border-radius:16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 20px rgba(26,35,126,0.08); margin-bottom:25px; border-left:4px solid #dcc97a; flex-wrap:wrap; gap:15px; }
-        .header h1 { color:#1a237e; font-size:22px; font-weight:800; }
-        .btn-volver { background:#1a237e; color:white; padding:8px 20px; border-radius:10px; text-decoration:none; font-weight:600; font-size:13px; }
-        .msg-card { background:white; border-radius:16px; padding:18px 22px; margin-bottom:12px; box-shadow:0 4px 20px rgba(26,35,126,0.06); border-left:4px solid #2196f3; }
-        .msg-header { display:flex; justify-content:space-between; margin-bottom:8px; }
-        .msg-from { font-weight:700; color:#1a237e; font-size:14px; }
-        .msg-date { color:#888; font-size:12px; }
-        .msg-subject { font-weight:600; color:#333; margin-bottom:6px; }
-        .msg-body { color:#666; font-size:13px; line-height:1.5; }
-        .no-leido { border-left-color:#e91e63; background:#fff8fb; }
-        .vacio { text-align:center; color:#888; padding:40px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>💬 Mensajes</h1>
-            <a href="../dashboard_<?php echo $rol; ?>.php" class="btn-volver">← Volver al Dashboard</a>
-        </div>
-        <?php if (!empty($error)): ?>
-            <div style="background:#ffebee;color:#c62828;padding:12px 20px;border-radius:10px;margin-bottom:20px;font-weight:600;"><?php echo $error; ?></div>
-        <?php endif; ?>
-        <?php if (empty($mensajes)): ?>
-            <div class="vacio">No tienes mensajes.</div>
-        <?php else: ?>
-            <?php foreach ($mensajes as $m): ?>
-            <div class="msg-card <?php echo empty($m['leido']) ? 'no-leido' : ''; ?>">
-                <div class="msg-header">
-                    <span class="msg-from">👤 <?php echo htmlspecialchars($m['remitente_nombre'] ?? 'Sistema'); ?></span>
-                    <span class="msg-date"><?php echo date('d/m/Y H:i', strtotime($m['fecha'])); ?></span>
+<style>
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { padding: 8px 24px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.3s; font-size: 14px; }
+    .tab-btn.active { background: #1a237e; color: white; }
+    .tab-btn.inactive { background: #e8eaf6; color: #1a237e; }
+    .tab-btn.inactive:hover { background: #d5d9e8; }
+    .mensaje-item { padding: 12px 16px; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .mensaje-item:last-child { border-bottom: none; }
+    .mensaje-item .asunto { font-weight: 600; color: #1a237e; }
+    .mensaje-item .de { color: #666; font-size: 13px; }
+    .mensaje-item .fecha { color: #999; font-size: 12px; }
+    .mensaje-item .no-leido { background: #e3f2fd; color: #0d47a1; padding: 2px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .btn-mensaje { background: #1a237e; color: white; padding: 4px 14px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; transition: 0.3s; }
+    .btn-mensaje:hover { background: #0d1457; }
+    .btn-enviar { display: inline-block; background: #dcc97a; color: #1a237e; padding: 8px 24px; border-radius: 10px; text-decoration: none; font-weight: 700; margin-bottom: 15px; transition: 0.3s; }
+    .btn-enviar:hover { background: #c4b15a; transform: translateY(-2px); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .empty-message { color: #999; text-align: center; padding: 30px; font-size: 14px; }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+    <h2 style="color:#1a237e;">💬 Mensajes</h2>
+    <a href="enviar.php" class="btn-enviar">✉️ Nuevo Mensaje</a>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="mostrarTab('recibidos')">📥 Recibidos (<?php echo count($recibidos); ?>)</button>
+    <button class="tab-btn inactive" onclick="mostrarTab('enviados')">📤 Enviados (<?php echo count($enviados); ?>)</button>
+</div>
+
+<!-- Recibidos -->
+<div id="tab-recibidos" class="tab-content active">
+    <?php if (count($recibidos) == 0): ?>
+        <div class="empty-message">📭 No tienes mensajes recibidos</div>
+    <?php else: ?>
+        <?php foreach($recibidos as $msg): ?>
+            <div class="mensaje-item">
+                <div>
+                    <div class="asunto"><?php echo htmlspecialchars($msg['asunto']); ?></div>
+                    <div class="de">👤 De: <?php echo htmlspecialchars($msg['remitente_nombre']); ?></div>
+                    <div class="fecha">📅 <?php echo $msg['fecha_envio']; ?></div>
                 </div>
-                <div class="msg-subject"><?php echo htmlspecialchars($m['asunto'] ?? 'Sin asunto'); ?></div>
-                <div class="msg-body"><?php echo nl2br(htmlspecialchars($m['contenido'] ?? '')); ?></div>
+                <div>
+                    <?php if (!$msg['leido'] || $msg['leido'] === 'f' || $msg['leido'] == 0): ?>
+                        <span class="no-leido">🔵 Nuevo</span>
+                    <?php endif; ?>
+                    <a href="leer.php?id=<?php echo $msg['id']; ?>" class="btn-mensaje">Ver</a>
+                </div>
             </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </div>
-</body>
-</html>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</div>
+
+<!-- Enviados -->
+<div id="tab-enviados" class="tab-content">
+    <?php if (count($enviados) == 0): ?>
+        <div class="empty-message">📤 No has enviado mensajes</div>
+    <?php else: ?>
+        <?php foreach($enviados as $msg): ?>
+            <div class="mensaje-item">
+                <div>
+                    <div class="asunto">📤 <?php echo htmlspecialchars($msg['asunto']); ?></div>
+                    <div class="de">👤 Para: <?php echo htmlspecialchars($msg['destinatario_nombre']); ?></div>
+                    <div class="fecha">📅 <?php echo $msg['fecha_envio']; ?></div>
+                </div>
+                <div>
+                    <a href="leer.php?id=<?php echo $msg['id']; ?>" class="btn-mensaje">Ver</a>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</div>
+
+<script>
+function mostrarTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.add('inactive'));
+    
+    document.getElementById('tab-' + tab).classList.add('active');
+    const btns = document.querySelectorAll('.tab-btn');
+    if (tab === 'recibidos') {
+        btns[0].classList.remove('inactive');
+        btns[0].classList.add('active');
+    } else {
+        btns[1].classList.remove('inactive');
+        btns[1].classList.add('active');
+    }
+}
+</script>
+
+<?php include '../includes/footer.php'; ?>

@@ -1,69 +1,89 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once '../config.php';
+$titulo = 'Notificaciones - TEC AZUAY';
+$base_path = '..';
+include '../includes/header.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../index.php');
+$user_id = $_SESSION['user_id'];
+
+// Marcar todas como leídas
+if (isset($_GET['marcar_todas'])) {
+    $stmt = $pdo->prepare("UPDATE notificaciones SET leida = TRUE WHERE usuario_id = ?");
+    $stmt->execute([$user_id]);
+    header('Location: index.php');
     exit();
 }
 
-$rol = strtolower(trim($_SESSION['user_rol'] ?? ''));
-$user_id = $_SESSION['user_id'];
+// Marcar una como leída
+if (isset($_GET['leer']) && isset($_GET['id'])) {
+    $id = (int)$_GET['id'];
+    $stmt = $pdo->prepare("UPDATE notificaciones SET leida = TRUE WHERE id = ? AND usuario_id = ?");
+    $stmt->execute([$id, $user_id]);
+    header('Location: index.php');
+    exit();
+}
 
-try {
-    $stmt = $pdo->prepare("
-        SELECT * FROM notificaciones 
-        WHERE usuario_id = ? 
-        ORDER BY fecha DESC
-    ");
-    $stmt->execute([$user_id]);
-    $notificaciones = $stmt->fetchAll();
-    
-    // Marcar como leídas al entrar
-    $pdo->prepare("UPDATE notificaciones SET leida = TRUE WHERE usuario_id = ? AND leida = FALSE")->execute([$user_id]);
-} catch (Exception $e) {
-    $notificaciones = [];
-    $error = 'No se pudieron cargar las notificaciones.';
+// Obtener notificaciones
+$stmt = $pdo->prepare("SELECT * FROM notificaciones WHERE usuario_id = ? ORDER BY fecha_creacion DESC");
+$stmt->execute([$user_id]);
+$notificaciones = $stmt->fetchAll();
+
+$no_leidas = 0;
+foreach ($notificaciones as $n) {
+    if (!$n['leida'] || $n['leida'] === 'f' || $n['leida'] == 0) $no_leidas++;
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Notificaciones - TEC AZUAY</title>
-    <link rel="stylesheet" href="../style.css">
-    <style>
-        body { background:#f0f2f5; font-family:'Inter',sans-serif; }
-        .container { max-width:900px; margin:0 auto; padding:20px; }
-        .header { background:white; padding:20px 30px; border-radius:16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 20px rgba(26,35,126,0.08); margin-bottom:25px; border-left:4px solid #dcc97a; flex-wrap:wrap; gap:15px; }
-        .header h1 { color:#1a237e; font-size:22px; font-weight:800; }
-        .btn-volver { background:#1a237e; color:white; padding:8px 20px; border-radius:10px; text-decoration:none; font-weight:600; font-size:13px; }
-        .notif-card { background:white; border-radius:16px; padding:18px 22px; margin-bottom:12px; box-shadow:0 4px 20px rgba(26,35,126,0.06); border-left:4px solid #9c27b0; }
-        .notif-title { font-weight:700; color:#1a237e; font-size:15px; margin-bottom:6px; }
-        .notif-body { color:#666; font-size:13px; line-height:1.5; margin-bottom:8px; }
-        .notif-date { color:#888; font-size:12px; }
-        .vacio { text-align:center; color:#888; padding:40px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔔 Notificaciones</h1>
-            <a href="../dashboard_<?php echo $rol; ?>.php" class="btn-volver">← Volver al Dashboard</a>
-        </div>
-        <?php if (!empty($error)): ?>
-            <div style="background:#ffebee;color:#c62828;padding:12px 20px;border-radius:10px;margin-bottom:20px;font-weight:600;"><?php echo $error; ?></div>
-        <?php endif; ?>
-        <?php if (empty($notificaciones)): ?>
-            <div class="vacio">No tienes notificaciones.</div>
-        <?php else: ?>
-            <?php foreach ($notificaciones as $n): ?>
-            <div class="notif-card">
-                <div class="notif-title"><?php echo htmlspecialchars($n['titulo'] ?? 'Notificación'); ?></div>
-                <div class="notif-body"><?php echo nl2br(htmlspecialchars($n['mensaje'] ?? '')); ?></div>
-                <div class="notif-date"><?php echo date('d/m/Y H:i', strtotime($n['fecha'])); ?></div>
+<style>
+    .notificacion-item { padding: 12px 16px; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .notificacion-item:last-child { border-bottom: none; }
+    .notificacion-item.no-leida { background: #f8f9ff; border-left: 4px solid #1a237e; }
+    .notificacion-item .titulo { font-weight: 600; color: #1a237e; }
+    .notificacion-item .mensaje { color: #444; font-size: 14px; }
+    .notificacion-item .fecha { color: #999; font-size: 12px; }
+    .notificacion-item .tipo { display: inline-block; padding: 2px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 10px; }
+    .tipo-tarea { background: #e3f2fd; color: #0d47a1; }
+    .tipo-recordatorio { background: #fff3e0; color: #e65100; }
+    .tipo-mensaje { background: #e8f5e9; color: #2e7d32; }
+    .tipo-anuncio { background: #fce4ec; color: #c62828; }
+    .tipo-calificacion { background: #f3e5f5; color: #6a1b9a; }
+    .btn-notificacion { background: #1a237e; color: white; padding: 4px 14px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; transition: 0.3s; }
+    .btn-notificacion:hover { background: #0d1457; }
+    .btn-marcar-todas { background: #dcc97a; color: #1a237e; padding: 6px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; font-size: 13px; }
+    .btn-marcar-todas:hover { background: #c4b15a; }
+    .empty-message { color: #999; text-align: center; padding: 40px; font-size: 16px; }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+    <h2 style="color:#1a237e;">🔔 Notificaciones <?php if ($no_leidas > 0): ?><span style="background:#dc3545; color:white; font-size:12px; padding:2px 12px; border-radius:12px; margin-left:8px;"><?php echo $no_leidas; ?> nuevas</span><?php endif; ?></h2>
+    <?php if ($no_leidas > 0): ?>
+        <form method="GET" style="display:inline;">
+            <button type="submit" name="marcar_todas" class="btn-marcar-todas">✅ Marcar todas como leídas</button>
+        </form>
+    <?php endif; ?>
+</div>
+
+<?php if (count($notificaciones) == 0): ?>
+    <div class="empty-message">📭 No tienes notificaciones</div>
+<?php else: ?>
+    <?php foreach($notificaciones as $notif): ?>
+        <div class="notificacion-item <?php if (!$notif['leida'] || $notif['leida'] === 'f' || $notif['leida'] == 0) echo 'no-leida'; ?>">
+            <div>
+                <div class="titulo">
+                    <?php echo htmlspecialchars($notif['titulo']); ?>
+                    <span class="tipo tipo-<?php echo $notif['tipo']; ?>"><?php echo $notif['tipo']; ?></span>
+                </div>
+                <div class="mensaje"><?php echo htmlspecialchars($notif['mensaje']); ?></div>
+                <div class="fecha">📅 <?php echo $notif['fecha_creacion']; ?></div>
             </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </div>
-</body>
-</html>
+            <div>
+                <?php if (!$notif['leida'] || $notif['leida'] === 'f' || $notif['leida'] == 0): ?>
+                    <a href="index.php?leer=1&id=<?php echo $notif['id']; ?>" class="btn-notificacion">Marcar leída</a>
+                <?php else: ?>
+                    <span style="color:#999; font-size:12px;">✅ Leída</span>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
+
+<?php include '../includes/footer.php'; ?>
