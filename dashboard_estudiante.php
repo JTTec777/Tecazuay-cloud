@@ -2,7 +2,8 @@
 require_once 'config.php';
 require_once 'languages.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_rol'] != 'estudiante') {
+// Verificación de rol (case-insensitive)
+if (!isset($_SESSION['user_id']) || strtolower($_SESSION['user_rol']) !== 'estudiante') {
     header('Location: index.php');
     exit();
 }
@@ -45,7 +46,7 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
         .btn-anuncios:hover { background: #c2185b; transform: translateY(-3px); }
         .btn-seguridad { display: inline-block; background: #607d8b; color: white; padding: 12px 28px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px; transition: 0.3s; box-shadow: 0 4px 16px rgba(96,125,139,0.3); }
         .btn-seguridad:hover { background: #455a64; transform: translateY(-3px); box-shadow: 0 8px 25px rgba(96,125,139,0.5); }
-	.welcome-banner {
+        .welcome-banner {
             background: linear-gradient(135deg, #1a237e 0%, #0d1457 100%);
             color: white; padding: 25px 30px; border-radius: 16px;
             margin-bottom: 25px; box-shadow: 0 8px 30px rgba(26,35,126,0.25);
@@ -82,7 +83,7 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             </div>
         </header>
 
-	<div class="botones-container">
+        <div class="botones-container">
             <a href="tareas/" class="btn-tareas">📋 Mis Tareas</a>
             <a href="calendar.php" class="btn-calendar">📅 Calendario</a>
             <a href="cursos/" class="btn-cursos">📚 Cursos</a>
@@ -96,7 +97,6 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
             <h2>¡Bienvenido, <?php echo $nombre_usuario; ?>! 📚</h2>
         </div>
 
-        <!-- HORARIO DE CLASES CORREGIDO -->
         <div class="horario-container">
             <h2>📅 Horario de Clases</h2>
             <table class="horario-tabla">
@@ -111,7 +111,6 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- LUNES -->
                     <tr>
                         <td class="dia-label">LUNES</td>
                         <td><div class="materia m-hackeo">TSCSSS - HACKEO ETICO LABORATORIO<small>BORIS SQUILANDA<br>LAB3</small></div></td>
@@ -120,7 +119,6 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
                         <td><div class="materia m-nube">TSCS - CIBERSEGURIDAD EN LA NUBE<small>LUIS PORTOCARRERO<br>LAB3</small></div></td>
                         <td><div class="materia m-ciber">TSCS - CIBERSEGURIDAD EN TECNOLOGIAS Y SISTEMAS DE INFORMACION<small>SHIRLEY TORRES<br>LAB3</small></div></td>
                     </tr>
-                    <!-- MARTES -->
                     <tr>
                         <td class="dia-label">MARTES</td>
                         <td><div class="materia m-ciber">TSCS - CIBERSEGURIDAD EN TECNOLOGIAS Y SISTEMAS DE INFORMACION<small>SHIRLEY TORRES<br>LAB6</small></div></td>
@@ -129,7 +127,6 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
                         <td><div class="materia m-continuidad">TSCS - CONTINUIDAD DEL NEGOCIO<small>SHIRLEY TORRES</small></div></td>
                         <td><div class="materia m-continuidad">TSCS - CONTINUIDAD DEL NEGOCIO<small>SHIRLEY TORRES</small></div></td>
                     </tr>
-                    <!-- MIÉRCOLES -->
                     <tr>
                         <td class="dia-label">MIÉRCOLES</td>
                         <td><div class="materia m-nube">TSCS - CIBERSEGURIDAD EN LA NUBE<small>LUIS PORTOCARRERO<br>LAB3</small></div></td>
@@ -138,7 +135,6 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
                         <td><div class="materia m-hackeo">TSCSSS - HACKEO ETICO LABORATORIO<small>BORIS SQUILANDA<br>LAB3</small></div></td>
                         <td><div class="materia m-hackeo">TSCSSS - HACKEO ETICO LABORATORIO<small>BORIS SQUILANDA<br>LAB3</small></div></td>
                     </tr>
-                    <!-- JUEVES -->
                     <tr>
                         <td class="dia-label">JUEVES</td>
                         <td><div class="materia m-legislacion">TSCS - LEGISLACION INFORMATICA<small>LADY SANGACHA<br>LAB3</small></div></td>
@@ -147,7 +143,6 @@ $nombre_usuario = strtoupper($_SESSION['user_nombre']);
                         <td><div class="materia m-hackeo">TSCSSS - HACKEO ETICO LABORATORIO<small>BORIS SQUILANDA<br>LAB3</small></div></td>
                         <td><div class="materia m-hackeo">TSCSSS - HACKEO ETICO LABORATORIO<small>BORIS SQUILANDA<br>LAB3</small></div></td>
                     </tr>
-                    <!-- VIERNES -->
                     <tr>
                         <td class="dia-label">VIERNES</td>
                         <td><div class="materia m-continuidad">TSCS - CONTINUIDAD DEL NEGOCIO<small>SHIRLEY TORRES<br>LAB3</small></div></td>
